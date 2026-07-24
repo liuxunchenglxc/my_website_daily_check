@@ -44,16 +44,33 @@ def load_netscape_cookies(cook: str):
             
     return cookies_list
 
+def send_tg_msg(text):
+    BOT_TOKEN = args.tgbottoken
+    CHAT_ID = args.tgchatid
+    telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    
+    # 文本参数
+    data = {
+        "chat_id": CHAT_ID,
+        "text": text
+    }
+    
+    # 发送请求
+    response = requests.post(telegram_url, data=data)
+    
+    result = response.json()
+    if result.get("ok"):
+        print("✅ 图片发送成功！")
+    else:
+        print(f"❌ 发送失败，原因: {result.get('description')}")
 
 def capture_and_send(page):
-    # --- 1. 配置信息 ---
     BOT_TOKEN = args.tgbottoken
     CHAT_ID = args.tgchatid
     
     print("正在截取可视窗口图片（返回字节流）...")
     img_bytes = page.get_screenshot(as_bytes=True, full_page=False)
     
-    # --- 3. 将字节流转换为文件对象并发送给 Telegram ---
     print("正在通过 Telegram 发送图片...")
     telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
     
@@ -72,7 +89,6 @@ def capture_and_send(page):
     # 发送请求
     response = requests.post(telegram_url, data=data, files=files)
     
-    # --- 4. 打印结果 ---
     result = response.json()
     if result.get("ok"):
         print("✅ 图片发送成功！")
@@ -88,32 +104,37 @@ page.set.cookies(cookies_str)
 url = "https://pterclub.net/mybonus.php"
 page.get(url)
 
-feed_str = ""
 
 try:
   t = random.randint(10, 15)
   button = page.ele('#do-attendance', timeout=t)
   button.click()
   capture_and_send(page)
-  feed_str += "点击签到成功！\n"
+  text = "点击签到成功！\n"
+  send_tg_msg(text)
+  print(text)
   page.wait(3)
 except:
   error_msg = format_exc()
-  feed_str += "点击签到失败:\n"
-  feed_str += error_msg
-  feed_str += "\n\n"
+  text = "点击签到失败:\n"
+  text += error_msg
+  send_tg_msg(text)
+  print(text)
 
 try:
   button = page.ele('@@tag()=td@@text()=3,200').next().child()
   button.click()
   capture_and_send(page)
-  feed_str += "兑换一次3,200魔力值成功！\n"
+  text = "兑换一次3,200魔力值成功！\n"
+  send_tg_msg(text)
+  print(text)
   page.wait(3)
 except:
   error_msg = format_exc()
-  feed_str += "点击兑换失败:\n"
-  feed_str += error_msg
-  feed_str += "\n\n"
+  text = "点击兑换失败:\n"
+  text += error_msg
+  send_tg_msg(text)
+  print(text)
 
 capture_and_send(page)
 
