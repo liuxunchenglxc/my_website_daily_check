@@ -1,4 +1,4 @@
-from DrissionPage import ChromiumPage, ChromiumOptions
+from DrissionPage import Chromium, ChromiumOptions
 import os
 import random
 from traceback import format_exc
@@ -99,8 +99,14 @@ cookies_str = load_netscape_cookies(args.pterclubcookies)
 co = ChromiumOptions()
 co.set_argument('--no-sandbox')
 co.set_argument('--disable-gpu')
-page = ChromiumPage(co)
+co.set_argument('--window-size', '1920,1080')
+co.set_argument('--start-maximized')
+browser = Chromium(addr_or_opts=co)
+
+page = browser.latest_tab
 page.set.cookies(cookies_str)
+page.set.window.full()
+
 url = "https://pterclub.net/mybonus.php"
 page.get(url)
 
@@ -108,7 +114,6 @@ send_tg_msg("开始签到和兑换魔力值任务...")
 
 try:
   t = random.randint(10, 15)
-  page.set.window.max()
   button = page.ele('#do-attendance', timeout=t)
   button.click(by_js=True, timeout=1.5)
   capture_and_send(page, "签到点击后")
