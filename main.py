@@ -5,6 +5,7 @@ from traceback import format_exc
 import io
 import requests
 import argparse
+import time
 
 parser = argparse.ArgumentParser(description="DrissionPage Action")
 parser.add_argument("--pterclubcookies", required=True, help="Auth Token")
@@ -64,7 +65,8 @@ def send_tg_msg(text):
     else:
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
-def capture_and_send(page, title):
+def capture_and_send(page, title, time_wait=1.5):
+    time.sleep(time_wait)
     BOT_TOKEN = args.tgbottoken
     CHAT_ID = args.tgchatid
     
@@ -110,13 +112,13 @@ page.set.window.full()
 url = "https://pterclub.net/mybonus.php"
 page.get(url)
 
-send_tg_msg("开始签到和兑换魔力值任务...")
+send_tg_msg("## 开始签到和兑换魔力值任务...")
 
 try:
   t = random.randint(10, 15)
   button = page.ele('#do-attendance', timeout=t)
   button.click(by_js=True, timeout=1.5)
-  capture_and_send(page, "签到点击后")
+  capture_and_send(page, "签到点击后", time_wait=1.5)
   text = "点击签到成功！\n"
   send_tg_msg(text)
   print(text)
@@ -131,7 +133,7 @@ except:
 try:
   button = page.ele('@@tag()=td@@text()=3,200').next().child()
   button.click(by_js=True, timeout=1.5)
-  capture_and_send(page, "兑换点击后")
+  capture_and_send(page, "兑换点击后", time_wait=1.5)
   text = "兑换一次3,200魔力值成功！\n"
   send_tg_msg(text)
   print(text)
@@ -143,6 +145,6 @@ except:
   send_tg_msg(text)
   print(text)
 
-capture_and_send(page, "最终结果")
+capture_and_send(page, "最终结果", time_wait=1.5)
 
-page.quit()
+send_tg_msg("*DrissionPage Actor 执行完毕！*")
