@@ -47,7 +47,7 @@ def capture_and_send(page):
     else:
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
-cookies_str = args.ptclubcookies
+cookies_str = args.pterclubcookies
 co = ChromiumOptions()
 co.set_argument('--no-sandbox')
 co.set_argument('--disable-gpu')
