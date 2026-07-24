@@ -1,4 +1,4 @@
-name: Subscribe Fetcher
+name: DrissionPage Actor
 
 on:
   workflow_dispatch:
