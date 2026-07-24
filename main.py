@@ -55,7 +55,7 @@ def capture_and_send(page):
     
     # --- 3. 将字节流转换为文件对象并发送给 Telegram ---
     print("正在通过 Telegram 发送图片...")
-    telegram_url = f"https://api.telegram.org/{BOT_TOKEN}/sendPhoto"
+    telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
     
     # 文本参数
     data = {
