@@ -1,0 +1,21 @@
+name: Subscribe Fetcher
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-task:
+    runs-on: ubuntu-latest
+    
+    container:
+      image: ghcr.io/liuxunchenglxc/my_drissionpage_env:latest
+      options: --ipc=host 
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - run: |
+          xvfb-run --server-args="-screen 0 1920x1080x24" python main.py \
+            --pterclubcookies "${{ secrets.PTER_COOK }}" \
+            --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
+            --tgchatid "${{ secrets.TG_CHAT_ID }}"
