@@ -64,7 +64,7 @@ def send_tg_msg(text):
     else:
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
-def capture_and_send(page):
+def capture_and_send(page, title):
     BOT_TOKEN = args.tgbottoken
     CHAT_ID = args.tgchatid
     
@@ -77,7 +77,7 @@ def capture_and_send(page):
     # 文本参数
     data = {
         "chat_id": CHAT_ID,
-        "caption": f"DrissionPage截取页面"
+        "caption": f"DrissionPage截取页面 - {title}"
     }
     
     # 将内存中的字节数据转换为 Telegram requests 接收的文件格式
@@ -101,15 +101,17 @@ co.set_argument('--no-sandbox')
 co.set_argument('--disable-gpu')
 page = ChromiumPage(co)
 page.set.cookies(cookies_str)
+page.set.window.max()
 url = "https://pterclub.net/mybonus.php"
 page.get(url)
 
+send_tg_msg("开始签到和兑换魔力值任务...")
 
 try:
   t = random.randint(10, 15)
   button = page.ele('#do-attendance', timeout=t)
   button.click()
-  capture_and_send(page)
+  capture_and_send(page, "签到点击后")
   text = "点击签到成功！\n"
   send_tg_msg(text)
   print(text)
@@ -124,7 +126,7 @@ except:
 try:
   button = page.ele('@@tag()=td@@text()=3,200').next().child()
   button.click()
-  capture_and_send(page)
+  capture_and_send(page, "兑换点击后")
   text = "兑换一次3,200魔力值成功！\n"
   send_tg_msg(text)
   print(text)
@@ -136,6 +138,6 @@ except:
   send_tg_msg(text)
   print(text)
 
-capture_and_send(page)
+capture_and_send(page, "最终结果")
 
 page.quit()
