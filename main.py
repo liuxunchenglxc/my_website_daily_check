@@ -118,6 +118,8 @@ try:
   t = random.randint(10, 15)
   button = page.ele('#do-attendance', timeout=t)
   button.click(by_js=True, timeout=1.5)
+  button = page.ele('@@tag()=button@@class=btn@@text()=关闭', timeout=1.5)
+  button.click(by_js=True, timeout=1.5)
   capture_and_send(page, "签到点击后", time_wait=1.5)
   text = "点击签到成功！\n"
   send_tg_msg(text)
