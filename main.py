@@ -39,6 +39,8 @@ def load_netscape_cookies(cook: str):
             'value': parts[6]
         }
         
+        print(f"解析到 Cookie: {cookie_dict['name']}，过期时间: {cookie_dict['expiry']}")
+        
         # 过滤掉没有过期时间的无效数据（可选）
         if cookie_dict['expiry'] is None:
             cookie_dict.pop('expiry')
