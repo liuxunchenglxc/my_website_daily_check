@@ -6,6 +6,7 @@ import io
 import requests
 import argparse
 import time
+from datetime import datetime, timedelta
 
 parser = argparse.ArgumentParser(description="DrissionPage Action")
 parser.add_argument("--pterclubcookies", required=True, help="Auth Token")
@@ -16,6 +17,7 @@ args = parser.parse_args()
 
 def load_netscape_cookies(cook: str):
     cookies_list = []
+    min_expiry = None
     for line in cook.splitlines():
         # 忽略注释行和空行
         if line.startswith('#') or not line.strip():
@@ -40,10 +42,13 @@ def load_netscape_cookies(cook: str):
         # 过滤掉没有过期时间的无效数据（可选）
         if cookie_dict['expiry'] is None:
             cookie_dict.pop('expiry')
+        else:
+            if min_expiry is None or cookie_dict['expiry'] < min_expiry:
+                min_expiry = cookie_dict['expiry']
             
         cookies_list.append(cookie_dict)
             
-    return cookies_list
+    return cookies_list, min_expiry
 
 def send_tg_msg(text):
     BOT_TOKEN = args.tgbottoken
@@ -97,7 +102,7 @@ def capture_and_send(page, title, time_wait=1.5):
     else:
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
-cookies_str = load_netscape_cookies(args.pterclubcookies)
+cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
 co = ChromiumOptions()
 co.set_argument('--no-sandbox')
 co.set_argument('--disable-gpu')
@@ -150,6 +155,7 @@ except:
 #   send_tg_msg(text)
   print(text)
 
-capture_and_send(page, "DrissionPage Actor 执行 pterclub.net 签到和兑换魔力值任务最终结果", time_wait=1.5)
+expiry_time_str = (datetime.fromtimestamp(min_expiry) + timedelta(hours=8)).strftime('%Y年%m月%d日%H时') if min_expiry else "未知"
+capture_and_send(page, f"DrissionPage Actor 执行 pterclub.net 签到和兑换魔力值任务最终结果（过期时间：{expiry_time_str}）", time_wait=1.5)
 
 # send_tg_msg("*DrissionPage Actor 执行完毕！*")
