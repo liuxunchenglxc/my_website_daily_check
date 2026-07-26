@@ -112,41 +112,44 @@ page.set.window.full()
 url = "https://pterclub.net/mybonus.php"
 page.get(url)
 
-send_tg_msg("## 开始签到和兑换魔力值任务...")
+# send_tg_msg("## 开始签到和兑换魔力值任务...")
 
 try:
   t = random.randint(10, 15)
   button = page.ele('#do-attendance', timeout=t)
   button.click(by_js=True, timeout=1.5)
-  button = page.ele('@@tag()=button@@class=btn@@text()=关闭', timeout=1.5)
-  button.click(by_js=True, timeout=1.5)
-  capture_and_send(page, "签到点击后", time_wait=1.5)
+  try:
+    button = page.ele('@@tag()=button@@class=btn@@text()=关闭', timeout=1.5)
+    button.click(by_js=True, timeout=1.5)
+  except:
+    pass
+#   capture_and_send(page, "签到点击后", time_wait=1.5)
   text = "点击签到成功！\n"
-  send_tg_msg(text)
+#   send_tg_msg(text)
   print(text)
   page.wait(3)
 except:
   error_msg = format_exc()
   text = "点击签到失败:\n"
   text += error_msg
-  send_tg_msg(text)
+#   send_tg_msg(text)
   print(text)
 
 try:
   button = page.ele('@@tag()=td@@text()=3,200').next().child()
   button.click(by_js=True, timeout=1.5)
-  capture_and_send(page, "兑换点击后", time_wait=1.5)
+#   capture_and_send(page, "兑换点击后", time_wait=1.5)
   text = "兑换一次3,200魔力值成功！\n"
-  send_tg_msg(text)
+#   send_tg_msg(text)
   print(text)
   page.wait(3)
 except:
   error_msg = format_exc()
   text = "点击兑换失败:\n"
   text += error_msg
-  send_tg_msg(text)
+#   send_tg_msg(text)
   print(text)
 
-capture_and_send(page, "最终结果", time_wait=1.5)
+capture_and_send(page, "DrissionPage Actor 执行 pterclub.net 签到和兑换魔力值任务最终结果", time_wait=1.5)
 
-send_tg_msg("*DrissionPage Actor 执行完毕！*")
+# send_tg_msg("*DrissionPage Actor 执行完毕！*")
