@@ -39,7 +39,7 @@ def load_netscape_cookies(cook: str):
             'value': parts[6]
         }
         
-        print(f"解析到 Cookie: {cookie_dict['name']}，过期时间: {cookie_dict['expiry']}")
+        # print(f"解析到 Cookie: {cookie_dict['name']}，过期时间: {cookie_dict['expiry']}")
         
         if min_expiry is None:
             min_expiry = cookie_dict['expiry']
