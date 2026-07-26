@@ -41,12 +41,10 @@ def load_netscape_cookies(cook: str):
         
         print(f"解析到 Cookie: {cookie_dict['name']}，过期时间: {cookie_dict['expiry']}")
         
-        # 过滤掉没有过期时间的无效数据（可选）
-        if cookie_dict['expiry'] is None:
-            cookie_dict.pop('expiry')
-        else:
-            if min_expiry is None or cookie_dict['expiry'] < min_expiry:
-                min_expiry = cookie_dict['expiry']
+        if min_expiry is None:
+            min_expiry = cookie_dict['expiry']
+        elif cookie_dict['expiry'] > 0 and cookie_dict['expiry'] < min_expiry:
+            min_expiry = cookie_dict['expiry']
             
         cookies_list.append(cookie_dict)
             
