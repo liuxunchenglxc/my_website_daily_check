@@ -10,6 +10,7 @@ import requests
 import argparse
 import time
 from datetime import datetime, timedelta
+import hashlib
 
 parser = argparse.ArgumentParser(description="DrissionPage Action")
 parser.add_argument("--pterclubcookies", required=True, help="Auth Token")
@@ -141,6 +142,18 @@ def send_resend_email(sub_url, status: bool):
     print("邮件发送结果：")
     print(email)
 
+def is_repeat_url(sub_url, status):
+    if status:
+        string_hash = hashlib.sha256(sub_url.encode()).hexdigest()
+        if os.path.exists("fnyhash.txt"):
+            with open("fnyhash.txt", "r", encoding="utf-8") as f:
+                old_hash = f.read()
+            if old_hash == string_hash:
+                return True
+        with open("fnyhash.txt", "w", encoding="utf-8") as f:
+            f.write(string_hash)
+    return False
+
 # cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
 co = ChromiumOptions()
 co.set_argument('--no-sandbox')
@@ -182,11 +195,16 @@ try:
     sub_2 = tab.ele('text=复制订阅地址', timeout=1.5)
     sub_2.click(by_js=True, timeout=1.5)
     sub_url = pyperclip.paste()
-    capture_and_send(tab, f"飞鸟云订阅地址：{sub_url}", time_wait=1.5)
-    send_resend_email(sub_url, status=True)
+    if not is_repeat_url(sub_url, True):
+        print("[+] 检测到为全新URL。")
+        capture_and_send(tab, f"飞鸟云全新订阅地址：{sub_url}", time_wait=1.5)
+        send_resend_email(sub_url, status=True)
+    else:
+        print("[=] 检测到为重复URL。")
     tab.wait(3)
 except:
   error_msg = format_exc()
+  print(error_msg)
   send_resend_email(error_msg, status=False)
   capture_and_send(tab, f"飞鸟云订阅更新错误，请查看邮件", time_wait=1.5)
 print("执行完毕！")

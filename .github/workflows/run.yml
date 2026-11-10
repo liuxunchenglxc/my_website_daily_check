@@ -21,6 +21,14 @@ jobs:
             --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
             --tgchatid "${{ secrets.TG_CHAT_ID }}"
       
+      - uses: actions/cache/restore@v6
+        id: cache
+        with:
+          path: fnyhash.txt
+          key: fnyhash-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            fnyhash-
+
       - name: 飞鸟云更新
         if: always()
         run: |
@@ -32,3 +40,9 @@ jobs:
             --fnypswd "${{ secrets.FNY_PSWD }}" \
             --proxy "${{ secrets.PROXY }}" \
             --resendkey "${{ secrets.RESEND_KEY }}"
+      
+      - name: Save Updated Value
+        uses: actions/cache/save@v6
+        with:
+          path: fnyhash.txt
+          key: fnyhash-${{ github.run_id }}-${{ github.run_attempt }}
