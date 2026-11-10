@@ -125,6 +125,7 @@ tab.get(url)
 
 try:
   time.sleep(5)
+  print("点击CF框")
   ac.move_to((432, 136), duration=0.5).move_to((532, 336), duration=0.5).click()
   user = tab.ele('css:div.form-group > input[type="text"]', timeout=5)
   pswd = tab.ele('css:div.form-group > input[type="password"]', timeout=1.5)
@@ -133,6 +134,14 @@ try:
     user.input(args.fnyuser, clear=True, by_js=True)
     pswd.input(args.fnypswd, clear=True, by_js=True)
     login.click(by_js=True, timeout=1.5)
+    print("点击登录按钮")
+    try:
+        time.sleep(2)
+        close = tab.ele('css:button.ant-modal-close > span > i', timeout=1.5)
+        close.click(by_js=True, timeout=1.5)
+        print("关闭公告")
+    except:
+        pass
   except:
     pass
   capture_and_send(tab, "飞鸟云登陆页面", time_wait=1.5)
