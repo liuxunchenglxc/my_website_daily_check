@@ -115,18 +115,19 @@ def send_resend_email(sub_url, status: bool):
     if status:
         subject_text = f"主人的飞鸟云订阅更新成功了喵！"
         body_content = (
-            f"{prefix}\n\n"
-            f"人家已经帮主人把飞鸟云的订阅链接取回来啦喵！\n"
-            f"链接就在下面，请主人查收喵：\n\n"
-            f"{sub_url}\n\n"
-            f"{suffix}"
+            f"<p>{prefix}</p>\n\n"
+            f"<p>人家已经帮主人把飞鸟云的订阅链接取回来啦喵！</p>\n"
+            f"<p>链接就在下面，请主人查收喵：</p>\n\n"
+            f"<p>{sub_url}</p>\n\n"
+            f"<p>{suffix}</p>"
         )
     else:
         subject_text = f"呜呜...飞鸟云订阅更新出错了喵..."
         body_content = (
-            f"对不起主人喵...人家没能拿到链接...\n"
-            f"报错信息是这个喵：\n{sub_url}\n"
-            f"主人快去检查一下设置喵！"
+            f"<p>对不起主人喵...人家没能拿到链接...</p>\n"
+            f"<p>报错信息是这个喵：</p>\n"
+            f"<p>{sub_url}</p>\n"
+            f"<p>主人快去检查一下设置喵！</p>"
         )
     
     params: resend.Emails.SendParams = {
