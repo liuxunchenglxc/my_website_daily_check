@@ -1,4 +1,5 @@
 from DrissionPage import Chromium, ChromiumOptions
+from DrissionPage.common import Actions
 import os
 import random
 from traceback import format_exc
@@ -114,30 +115,32 @@ co.set_argument('--window-size', '1920,1080')
 co.set_argument('--start-maximized')
 browser = Chromium(addr_or_opts=co)
 
-page = browser.latest_tab
+tab = browser.latest_tab
+ac = Actions(tab)
 # page.set.cookies(cookies_str)
-page.set.window.full()
+tab.set.window.full()
 
 url = "https://feiniaoyun.xyz/#/login"
-page.get(url)
+tab.get(url)
 
 try:
-  t = random.randint(10, 15)
-  user = page.ele('css:div.form-group > input[type="text"]', timeout=t)
-  pswd = page.ele('css:div.form-group > input[type="password"]', timeout=1.5)
-  login = page.ele('css:button[type="submit"]', timeout=1.5)
+  time.sleep(5)
+  ac.move_to((432, 136), duration=0.5).move_to((532, 336), duration=0.5).click()
+  user = tab.ele('css:div.form-group > input[type="text"]', timeout=5)
+  pswd = tab.ele('css:div.form-group > input[type="password"]', timeout=1.5)
+  login = tab.ele('css:button[type="submit"]', timeout=1.5)
   try:
     user.input(args.fnyuser, clear=True, by_js=True)
     pswd.input(args.fnypswd, clear=True, by_js=True)
     login.click(by_js=True, timeout=1.5)
   except:
     pass
-  capture_and_send(page, "飞鸟云登陆页面", time_wait=1.5)
-  page.wait(3)
+  capture_and_send(tab, "飞鸟云登陆页面", time_wait=1.5)
+  tab.wait(3)
 except:
   error_msg = format_exc()
 
-capture_and_send(page, "飞鸟云登陆页面后", time_wait=1.5)
+capture_and_send(tab, "飞鸟云登陆页面后", time_wait=1.5)
 
 # try:
 #   button = page.ele('@@tag()=td@@text()=3,200').next().child()
