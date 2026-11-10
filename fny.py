@@ -1,6 +1,7 @@
 from DrissionPage import Chromium, ChromiumOptions
 from DrissionPage.common import Actions
 import resend
+import pyperclip
 import os
 import random
 from traceback import format_exc
@@ -136,6 +137,7 @@ def send_resend_email(sub_url, status: bool):
     }
 
     email = resend.Emails.send(params)
+    print("邮件发送结果：")
     print(email)
 
 # cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
@@ -178,14 +180,12 @@ try:
     sub_1.click(by_js=True, timeout=1.5)
     sub_2 = tab.ele('text=复制订阅地址', timeout=1.5)
     sub_2.click(by_js=True, timeout=1.5)
-    sub_url = tab.run_js("""
-        return navigator.clipboard.readText();
-    """)
+    sub_url = pyperclip.paste()
     capture_and_send(tab, f"飞鸟云订阅地址：{sub_url}", time_wait=1.5)
     send_resend_email(sub_url, status=True)
     tab.wait(3)
 except:
   error_msg = format_exc()
   send_resend_email(error_msg, status=False)
-  capture_and_send(tab, f"飞鸟云订阅更新错误：{error_msg}", time_wait=1.5)
+  capture_and_send(tab, f"飞鸟云订阅更新错误，请查看邮件", time_wait=1.5)
 print("执行完毕！")
