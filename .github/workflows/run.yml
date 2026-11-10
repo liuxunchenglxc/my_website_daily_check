@@ -14,8 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - run: |
+      - name: PterClub签到
+        run: |
           xvfb-run --server-args="-screen 0 1920x1080x24" python3 main.py \
             --pterclubcookies "${{ secrets.PTER_COOK }}" \
             --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
             --tgchatid "${{ secrets.TG_CHAT_ID }}"
+      
+      - name: 飞鸟云更新
+        if: always()
+        run: |
+          xvfb-run --server-args="-screen 0 1920x1080x24" python3 fny.py \
+            --pterclubcookies "${{ secrets.PTER_COOK }}" \
+            --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
+            --tgchatid "${{ secrets.TG_CHAT_ID }}" \
+            --fnyuser "${{ secrets.FNY_USER }}" \
+            --fnypswd "${{ secrets.FNY_PSWD }}" \
+            --proxy "${{ secrets.PROXY }}" \
+            --resendkey "${{ secrets.RESEND_KEY }}"
