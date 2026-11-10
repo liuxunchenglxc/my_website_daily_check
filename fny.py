@@ -1,5 +1,6 @@
 from DrissionPage import Chromium, ChromiumOptions
 from DrissionPage.common import Actions
+import resend
 import os
 import random
 from traceback import format_exc
@@ -16,7 +17,7 @@ parser.add_argument("--tgchatid", required=True, help="TG Chat ID")
 parser.add_argument("--fnyuser", required=True, help="FNY User")
 parser.add_argument("--fnypswd", required=True, help="FNY Password")
 parser.add_argument("--proxy", required=False, help="Proxy URL")
-
+parser.add_argument("--resendkey", required=True, help="Resend Key")
 
 args = parser.parse_args()
 
@@ -81,7 +82,7 @@ def capture_and_send(page, title, time_wait=1.5):
     CHAT_ID = args.tgchatid
     
     print("正在截取可视窗口图片（返回字节流）...")
-    img_bytes = page.get_screenshot(as_bytes=True, full_page=False)
+    img_bytes = page.get_screenshot(as_bytes='webp', full_page=False)
     
     print("正在通过 Telegram 发送图片...")
     telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
@@ -93,9 +94,8 @@ def capture_and_send(page, title, time_wait=1.5):
     }
     
     # 将内存中的字节数据转换为 Telegram requests 接收的文件格式
-    # 'screenshot.jpg' 是虚拟文件名，告诉 Telegram 这是 JPG 格式
     files = {
-        "photo": ("screenshot.jpg", io.BytesIO(img_bytes), "image/jpeg")
+        "photo": ("screenshot.webp", io.BytesIO(img_bytes), "image/webp")
     }
     
     # 发送请求
@@ -107,6 +107,37 @@ def capture_and_send(page, title, time_wait=1.5):
     else:
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
+def send_resend_email(sub_url, status: bool):
+    prefix = random.choice(["呜喵！", "主人主人！", "喵呜~", "报告主人！"])
+    suffix = random.choice(["要好好使用喵~", "这是人家的努力成果喵！", "喵喵喵~"])
+
+    if status:
+        subject_text = f"主人的飞鸟云订阅更新成功了喵！"
+        body_content = (
+            f"{prefix}\n\n"
+            f"人家已经帮主人把飞鸟云的订阅链接取回来啦喵！\n"
+            f"链接就在下面，请主人查收喵：\n\n"
+            f"{sub_url}\n\n"
+            f"{suffix}"
+        )
+    else:
+        subject_text = f"呜呜...飞鸟云订阅更新出错了喵..."
+        body_content = (
+            f"对不起主人喵...人家没能拿到链接...\n"
+            f"报错信息是这个喵：\n{sub_url}\n"
+            f"主人快去检查一下设置喵！"
+        )
+    
+    params: resend.Emails.SendParams = {
+    "from": "Github Action 猫娘 <onboarding@resend.dev>",
+    "to": ["liuxunchenglxc@163.com"],
+    "subject": subject_text,
+    "html": body_content
+    }
+
+    email = resend.Emails.send(params)
+    print(email)
+
 # cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
 co = ChromiumOptions()
 co.set_argument('--no-sandbox')
@@ -114,6 +145,8 @@ co.set_argument('--disable-gpu')
 co.set_argument('--window-size', '1920,1080')
 co.set_argument('--start-maximized')
 browser = Chromium(addr_or_opts=co)
+
+resend.api_key = args.resendkey
 
 tab = browser.latest_tab
 ac = Actions(tab)
@@ -124,13 +157,12 @@ url = "https://feiniaoyun.xyz/#/login"
 tab.get(url)
 
 try:
-  time.sleep(5)
-  print("点击CF框")
-  ac.move_to((432, 136), duration=0.5).move_to((532, 336), duration=0.5).click()
-  user = tab.ele('css:div.form-group > input[type="text"]', timeout=5)
-  pswd = tab.ele('css:div.form-group > input[type="password"]', timeout=1.5)
-  login = tab.ele('css:button[type="submit"]', timeout=1.5)
-  try:
+    time.sleep(5)
+    print("点击CF框")
+    ac.move_to((432, 136), duration=0.5).move_to((532, 336), duration=0.5).click()
+    user = tab.ele('css:div.form-group > input[type="text"]', timeout=5)
+    pswd = tab.ele('css:div.form-group > input[type="password"]', timeout=1.5)
+    login = tab.ele('css:button[type="submit"]', timeout=1.5)
     user.input(args.fnyuser, clear=True, by_js=True)
     pswd.input(args.fnypswd, clear=True, by_js=True)
     login.click(by_js=True, timeout=1.5)
@@ -142,31 +174,18 @@ try:
         print("关闭公告")
     except:
         pass
-  except:
-    pass
-  capture_and_send(tab, "飞鸟云登陆页面", time_wait=1.5)
-  tab.wait(3)
+    sub_1 = tab.ele('text=一键订阅', timeout=1.5)
+    sub_1.click(by_js=True, timeout=1.5)
+    sub_2 = tab.ele('text=复制订阅地址', timeout=1.5)
+    sub_2.click(by_js=True, timeout=1.5)
+    sub_url = tab.run_js("""
+        return navigator.clipboard.readText();
+    """)
+    capture_and_send(tab, f"飞鸟云订阅地址：{sub_url}", time_wait=1.5)
+    send_resend_email(sub_url, status=True)
+    tab.wait(3)
 except:
   error_msg = format_exc()
-
-capture_and_send(tab, "飞鸟云登陆页面后", time_wait=1.5)
-
-# try:
-#   button = page.ele('@@tag()=td@@text()=3,200').next().child()
-#   button.click(by_js=True, timeout=1.5)
-# #   capture_and_send(page, "兑换点击后", time_wait=1.5)
-#   text = "兑换一次3,200魔力值成功！\n"
-# #   send_tg_msg(text)
-#   print(text)
-#   page.wait(3)
-# except:
-#   error_msg = format_exc()
-#   text = "点击兑换失败:\n"
-#   text += error_msg
-# #   send_tg_msg(text)
-#   print(text)
-
-# expiry_time_str = (datetime.fromtimestamp(min_expiry) + timedelta(hours=8)).strftime('%Y年%m月%d日%H时') if min_expiry else "未知"
-# capture_and_send(page, f"DrissionPage Actor 执行 pterclub.net 签到和兑换魔力值任务最终结果（过期时间：{expiry_time_str}）", time_wait=1.5)
-
-# send_tg_msg("*DrissionPage Actor 执行完毕！*")
+  send_resend_email(error_msg, status=False)
+  capture_and_send(tab, f"飞鸟云订阅更新错误：{error_msg}", time_wait=1.5)
+print("执行完毕！")

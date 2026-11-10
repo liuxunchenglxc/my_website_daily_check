@@ -21,4 +21,6 @@ jobs:
             --tgchatid "${{ secrets.TG_CHAT_ID }}" \
             --fnyuser "${{ secrets.FNY_USER }}" \
             --fnypswd "${{ secrets.FNY_PSWD }}" \
-            --proxy "${{ secrets.PROXY }}"
+            --proxy "${{ secrets.PROXY }}" \
+            --resendkey "${{ secrets.RESEND_KEY }}"
+            
