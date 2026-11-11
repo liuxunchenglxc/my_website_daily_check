@@ -1,3 +1,5 @@
+from calendar import c
+
 from DrissionPage import Chromium, ChromiumOptions
 from DrissionPage.common import Actions
 import resend
@@ -206,7 +208,7 @@ user, pswd = uspw.split(':')
 host, port = hspt.split(':')
 plugin_path = create_proxy_auth_extension(host, port, user, pswd)
 co.add_extension(plugin_path)
-co.add_extension("buster")
+# co.add_extension("buster")
 co.set_argument('--no-sandbox')
 co.set_argument('--disable-gpu')
 co.set_argument('--window-size', '1920,1080')
@@ -220,28 +222,38 @@ ac = Actions(tab)
 # page.set.cookies(cookies_str)
 tab.set.window.full()
 
-url = "https://discord.com/login"
+url = "https://chromewebstore.google.com/detail/hcaptcha-solver-by-noneca/kahepbmokpbbkfognbmimpmnlfibcolf"
 tab.get(url)
 
 try:
     time.sleep(5)
-    capture_and_send(tab, f"https://discord.com/login", time_wait=1.5)
-    user = tab.ele('css:input[type="text"]', timeout=1.5)
-    pswd = tab.ele('css:input[type="password"]', timeout=1.5)
-    login = tab.ele('css:button[type="submit"]', timeout=1.5)
-    if user and pswd and login:
-        user.input(args.discorduser, clear=True, by_js=False)
-        pswd.input(args.discordpswd, clear=True, by_js=False)
-        login.click(by_js=True, timeout=1.5)
-        print("点击登录按钮")
-        ac.move_to((432, 136), duration=0.5).move_to((840,653), duration=0.5).click()
-        time.sleep(5)
-        capture_and_send(tab, f"Discord 登录操作完成", time_wait=1.5)
+    capture_and_send(tab, f"Chrome Web Store 页面", time_wait=1.5)
 except:
-  error_msg = format_exc()
-  print(error_msg)
-#   send_resend_email(error_msg, status=False)
-#   capture_and_send(tab, f"飞鸟云订阅更新错误，请查看邮件", time_wait=1.5)
+    error_msg = format_exc()
+    print(error_msg)
+
+# url = "https://discord.com/login"
+# tab.get(url)
+
+# try:
+#     time.sleep(5)
+#     capture_and_send(tab, f"https://discord.com/login", time_wait=1.5)
+#     user = tab.ele('css:input[type="text"]', timeout=1.5)
+#     pswd = tab.ele('css:input[type="password"]', timeout=1.5)
+#     login = tab.ele('css:button[type="submit"]', timeout=1.5)
+#     if user and pswd and login:
+#         user.input(args.discorduser, clear=True, by_js=False)
+#         pswd.input(args.discordpswd, clear=True, by_js=False)
+#         login.click(by_js=True, timeout=1.5)
+#         print("点击登录按钮")
+#         ac.move_to((432, 136), duration=0.5).move_to((840,653), duration=0.5).click()
+#         time.sleep(5)
+#         capture_and_send(tab, f"Discord 登录操作完成", time_wait=1.5)
+# except:
+#   error_msg = format_exc()
+#   print(error_msg)
+# #   send_resend_email(error_msg, status=False)
+# #   capture_and_send(tab, f"飞鸟云订阅更新错误，请查看邮件", time_wait=1.5)
 
 print("执行完毕！")
 
