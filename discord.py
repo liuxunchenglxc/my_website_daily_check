@@ -184,11 +184,7 @@ var config =
         bypassList: ["localhost"]
     }}
 }};
-chrome.proxy.settings.set(
-{{value: config, scope: "regular"}
-}, function() 
-{{}
-});
+chrome.proxy.settings.set({{value: config, scope: "regular"}}, function() {{}});
  
 chrome.webRequest.onAuthRequired.addListener(
     (details) => 
@@ -200,13 +196,11 @@ return
 "{username}"
 , password: 
 "{password}"
- }
-}
+ }}
         }};
     }},
     
-{{urls: ["<all_urls>"]}
-},
+{{urls: ["<all_urls>"]}},
     ['blocking']
 );
 """
