@@ -11,6 +11,8 @@ import argparse
 import time
 from datetime import datetime, timedelta
 import hashlib
+import zipfile
+import json
 
 parser = argparse.ArgumentParser(description="DrissionPage Action")
 parser.add_argument("--tgbottoken", required=True, help="TG BOT Token")
@@ -153,13 +155,81 @@ def is_repeat_url(sub_url, status):
             f.write(string_hash)
     return False
 
+def create_proxy_auth_extension(proxy_host, proxy_port, username, password):
+    manifest_json = {
+        "version": "1.0.0",
+        "manifest_version": 2,
+        "name": "Proxy Auth",
+        "permissions": ["proxy", "tabs", "unlimitedStorage", "storage"],
+        "background": {"scripts": ["background.js"]},
+        "minimum_chrome_version": "22.0.0"
+    }
+ 
+    auth_script = f"""
+var config = 
+{{
+    mode: 
+"fixed_servers"
+,
+    rules: {{
+        singleProxy: {{
+            scheme: 
+"http"
+,
+            host: 
+"{proxy_host}"
+,
+            port: {int(proxy_port)}
+        }},
+        bypassList: ["localhost"]
+    }}
+}};
+chrome.proxy.settings.set(
+{{value: config, scope: "regular"}
+}, function() 
+{{}
+});
+ 
+chrome.webRequest.onAuthRequired.addListener(
+    (details) => 
+{{
+        
+return
+ {{
+            authCredentials: {{ username: 
+"{username}"
+, password: 
+"{password}"
+ }
+}
+        }};
+    }},
+    
+{{urls: ["<all_urls>"]}
+},
+    ['blocking']
+);
+"""
+ 
+    # 构建 ZIP 插件包
+    zip_path = 'proxy_auth_plugin.zip'
+    with zipfile.ZipFile(zip_path, 'w') as zp:
+        zp.writestr('manifest.json', json.dumps(manifest_json))
+        zp.writestr('background.js', auth_script)
+    return zip_path
+
 # cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
 co = ChromiumOptions()
+proxy: str = args.proxy
+uspw, hspt = proxy.split("://")[1].strip('/').split('@')
+user, pswd = uspw.split(':')
+host, port = hspt.split(':')
+plugin_path = create_proxy_auth_extension(host, port, user, pswd)
+co.add_extension(plugin_path)
 co.set_argument('--no-sandbox')
 co.set_argument('--disable-gpu')
 co.set_argument('--window-size', '1920,1080')
 co.set_argument('--start-maximized')
-co.set_proxy('args.proxy' if args.proxy else None)
 browser = Chromium(addr_or_opts=co)
 
 resend.api_key = args.resendkey
