@@ -166,19 +166,12 @@ def create_proxy_auth_extension(proxy_host, proxy_port, username, password):
     }
  
     auth_script = f"""
-var config = 
-{{
-    mode: 
-"fixed_servers"
-,
+var config = {{
+    mode: "fixed_servers",
     rules: {{
         singleProxy: {{
-            scheme: 
-"http"
-,
-            host: 
-"{proxy_host}"
-,
+            scheme: "http",
+            host: "{proxy_host}",
             port: {int(proxy_port)}
         }},
         bypassList: ["localhost"]
@@ -187,30 +180,23 @@ var config =
 chrome.proxy.settings.set({{value: config, scope: "regular"}}, function() {{}});
  
 chrome.webRequest.onAuthRequired.addListener(
-    (details) => 
-{{
-        
-return
- {{
-            authCredentials: {{ username: 
-"{username}"
-, password: 
-"{password}"
- }}
+    (details) => {{
+        return {{
+            authCredentials: {{ username: "{username}", password: "{password}" }}
         }};
     }},
-    
-{{urls: ["<all_urls>"]}},
+    {{urls: ["<all_urls>"]}},
     ['blocking']
 );
 """
  
-    # 构建 ZIP 插件包
-    zip_path = 'proxy_auth_plugin.zip'
-    with zipfile.ZipFile(zip_path, 'w') as zp:
-        zp.writestr('manifest.json', json.dumps(manifest_json))
-        zp.writestr('background.js', auth_script)
-    return zip_path
+    # 构建文件夹
+    os.makedirs('proxy_auth_plugin', exist_ok=True)
+    with open('proxy_auth_plugin/manifest.json', 'w') as f:
+        json.dump(manifest_json, f)
+    with open('proxy_auth_plugin/background.js', 'w') as f:
+        f.write(auth_script)
+    return 'proxy_auth_plugin'
 
 # cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
 co = ChromiumOptions()
