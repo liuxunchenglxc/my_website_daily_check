@@ -182,6 +182,7 @@ try:
         pswd.input(args.discordpswd, clear=True, by_js=False)
         login.click(by_js=True, timeout=1.5)
         print("点击登录按钮")
+        ac.move_to((432, 136), duration=0.5).move_to((840,653), duration=0.5).click()
         time.sleep(5)
         capture_and_send(tab, f"Discord 登录操作完成", time_wait=1.5)
 except:
