@@ -16,9 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # - name: 下载插件
-      #   run: |
-      #     bash setup.ext.sh
+      - name: 安装插件
+        run: |
+          bash setup.ext.sh
 
       - name: Discord登陆
         run: |
