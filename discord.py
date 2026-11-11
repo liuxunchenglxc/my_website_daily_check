@@ -227,6 +227,7 @@ tab.get(url)
 
 try:
     time.sleep(5)
+    ac.move_to((432, 136), duration=0.5).move_to((1261,156), duration=0.5).click()
     capture_and_send(tab, f"Chrome Web Store 页面", time_wait=1.5)
 except:
     error_msg = format_exc()
