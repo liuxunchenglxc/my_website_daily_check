@@ -178,8 +178,8 @@ try:
     pswd = tab.ele('css:input[type="password"]', timeout=1.5)
     login = tab.ele('css:button[type="submit"]', timeout=1.5)
     if user and pswd and login:
-        user.input(args.discorduser, clear=True, by_js=True)
-        pswd.input(args.discordpswd, clear=True, by_js=True)
+        user.input(args.discorduser, clear=True, by_js=False)
+        pswd.input(args.discordpswd, clear=True, by_js=False)
         login.click(by_js=True, timeout=1.5)
         print("点击登录按钮")
         time.sleep(5)
