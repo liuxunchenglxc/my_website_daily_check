@@ -7,5 +7,5 @@
 # curl -L "https://github.com/${REPO}/releases/download/${LATEST_VERSION}/${FILE_NAME}" -o ${FILE_NAME_O}
 # unzip -o ${FILE_NAME_O} -d buster
 
-# https://www.crxsoso.com/webstore/detail/kahepbmokpbbkfognbmimpmnlfibcolf
+# https://www.crxsoso.com/webstore/detail/kahepbmokpbbkfognbmimpmnlfibcolf download crx to zip
 unzip -o "hCaptcha Solver by NoneCap 0.3.100.zip" -d hCaptchaSolver
