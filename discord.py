@@ -159,6 +159,7 @@ co.set_argument('--no-sandbox')
 co.set_argument('--disable-gpu')
 co.set_argument('--window-size', '1920,1080')
 co.set_argument('--start-maximized')
+co.set_proxy('args.proxy' if args.proxy else None)
 browser = Chromium(addr_or_opts=co)
 
 resend.api_key = args.resendkey
