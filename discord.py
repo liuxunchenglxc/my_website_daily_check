@@ -228,7 +228,6 @@ tab.get(url)
 
 try:
     time.sleep(5)
-    capture_and_send(tab, f"https://discord.com/login", time_wait=1.5)
     user = tab.ele('css:input[type="text"]', timeout=1.5)
     pswd = tab.ele('css:input[type="password"]', timeout=1.5)
     login = tab.ele('css:button[type="submit"]', timeout=1.5)
@@ -238,8 +237,9 @@ try:
         login.click(by_js=True, timeout=1.5)
         print("点击登录按钮")
         ac.move_to((432, 136), duration=0.5).move_to((840,653), duration=0.5).click()
-        time.sleep(5)
-        capture_and_send(tab, f"Discord 登录操作完成", time_wait=1.5)
+        capture_and_send(tab, f"Discord 已经点击登录", time_wait=1.5)
+        time.sleep(100)
+        capture_and_send(tab, f"Discord 等待是否有插件效果", time_wait=1.5)
 except:
   error_msg = format_exc()
   print(error_msg)
