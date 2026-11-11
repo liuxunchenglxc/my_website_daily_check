@@ -221,7 +221,7 @@ resend.api_key = args.resendkey
 tab = browser.latest_tab
 ac = Actions(tab)
 # page.set.cookies(cookies_str)
-tab.set.window.full()
+# tab.set.window.full()
 
 url = "https://discord.com/login"
 tab.get(url)
