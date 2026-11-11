@@ -16,7 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - run: |
+      - name: 下载插件
+        run: |
+          bash setup.ext.sh
+
+      - name: Discord登陆
+        run: |
           xvfb-run --server-args="-screen 0 1920x1080x24" python3 discord.py \
             --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
             --tgchatid "${{ secrets.TG_CHAT_ID }}" \
