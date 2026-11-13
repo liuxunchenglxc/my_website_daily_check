@@ -12,17 +12,6 @@ import time
 from datetime import datetime, timedelta
 import hashlib
 
-parser = argparse.ArgumentParser(description="DrissionPage Action")
-parser.add_argument("--pterclubcookies", required=True, help="Auth Token")
-parser.add_argument("--tgbottoken", required=True, help="TG BOT Token")
-parser.add_argument("--tgchatid", required=True, help="TG Chat ID")
-parser.add_argument("--fnyuser", required=True, help="FNY User")
-parser.add_argument("--fnypswd", required=True, help="FNY Password")
-parser.add_argument("--proxy", required=False, help="Proxy URL")
-parser.add_argument("--resendkey", required=True, help="Resend Key")
-
-args = parser.parse_args()
-
 def load_netscape_cookies(cook: str):
     cookies_list = []
     min_expiry = None
@@ -154,57 +143,74 @@ def is_repeat_url(sub_url, status):
             f.write(string_hash)
     return False
 
-# cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
-co = ChromiumOptions()
-co.set_argument('--no-sandbox')
-co.set_argument('--disable-gpu')
-co.set_argument('--window-size', '1920,1080')
-co.set_argument('--start-maximized')
-browser = Chromium(addr_or_opts=co)
+def main(args):
+    # cookies_str, min_expiry = load_netscape_cookies(args.pterclubcookies)
+    co = ChromiumOptions()
+    co.set_argument('--no-sandbox')
+    co.set_argument('--disable-gpu')
+    co.set_argument('--window-size', '1920,1080')
+    co.set_argument('--start-maximized')
+    browser = Chromium(addr_or_opts=co)
 
-resend.api_key = args.resendkey
+    resend.api_key = args.resendkey
 
-tab = browser.latest_tab
-ac = Actions(tab)
-# page.set.cookies(cookies_str)
-tab.set.window.full()
+    tab = browser.latest_tab
+    ac = Actions(tab)
+    # page.set.cookies(cookies_str)
+    tab.set.window.full()
 
-url = "https://feiniaoyun.xyz/#/login"
-tab.get(url)
+    url = "https://feiniaoyun.xyz/#/login"
+    tab.get(url)
 
-try:
-    time.sleep(5)
-    print("点击CF框")
-    ac.move_to((432, 136), duration=0.5).move_to((532, 336), duration=0.5).click()
-    user = tab.ele('css:div.form-group > input[type="text"]', timeout=5)
-    pswd = tab.ele('css:div.form-group > input[type="password"]', timeout=1.5)
-    login = tab.ele('css:button[type="submit"]', timeout=1.5)
-    user.input(args.fnyuser, clear=True, by_js=True)
-    pswd.input(args.fnypswd, clear=True, by_js=True)
-    login.click(by_js=True, timeout=1.5)
-    print("点击登录按钮")
     try:
-        time.sleep(2)
-        close = tab.ele('css:button.ant-modal-close > span > i', timeout=1.5)
-        close.click(by_js=True, timeout=1.5)
-        print("关闭公告")
+        time.sleep(5)
+        print("点击CF框")
+        ac.move_to((432, 136), duration=0.5).move_to((532, 336), duration=0.5).click()
+        user = tab.ele('css:div.form-group > input[type="text"]', timeout=5)
+        pswd = tab.ele('css:div.form-group > input[type="password"]', timeout=1.5)
+        login = tab.ele('css:button[type="submit"]', timeout=1.5)
+        user.input(args.fnyuser, clear=True, by_js=True)
+        pswd.input(args.fnypswd, clear=True, by_js=True)
+        login.click(by_js=True, timeout=1.5)
+        print("点击登录按钮")
+        try:
+            time.sleep(2)
+            close = tab.ele('css:button.ant-modal-close > span > i', timeout=1.5)
+            close.click(by_js=True, timeout=1.5)
+            print("关闭公告")
+        except:
+            pass
+        sub_1 = tab.ele('text=一键订阅', timeout=1.5)
+        sub_1.click(by_js=True, timeout=1.5)
+        sub_2 = tab.ele('text=复制订阅地址', timeout=1.5)
+        sub_2.click(by_js=True, timeout=1.5)
+        sub_url = pyperclip.paste()
+        if not is_repeat_url(sub_url, True):
+            print("[+] 检测到为全新URL。")
+            capture_and_send(tab, f"飞鸟云全新订阅地址：{sub_url}", time_wait=1.5)
+            send_resend_email(sub_url, status=True)
+        else:
+            print("[=] 检测到为重复URL。")
+        tab.wait(3)
     except:
-        pass
-    sub_1 = tab.ele('text=一键订阅', timeout=1.5)
-    sub_1.click(by_js=True, timeout=1.5)
-    sub_2 = tab.ele('text=复制订阅地址', timeout=1.5)
-    sub_2.click(by_js=True, timeout=1.5)
-    sub_url = pyperclip.paste()
-    if not is_repeat_url(sub_url, True):
-        print("[+] 检测到为全新URL。")
-        capture_and_send(tab, f"飞鸟云全新订阅地址：{sub_url}", time_wait=1.5)
-        send_resend_email(sub_url, status=True)
-    else:
-        print("[=] 检测到为重复URL。")
-    tab.wait(3)
-except:
-  error_msg = format_exc()
-  print(error_msg)
-  send_resend_email(error_msg, status=False)
-  capture_and_send(tab, f"飞鸟云订阅更新错误，请查看邮件", time_wait=1.5)
-print("执行完毕！")
+        error_msg = format_exc()
+        print(error_msg)
+        send_resend_email(error_msg, status=False)
+        capture_and_send(tab, f"飞鸟云订阅更新错误，请查看邮件", time_wait=1.5)
+    print("执行完毕！")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="DrissionPage Action")
+    parser.add_argument("--pterclubcookies", required=True, help="Auth Token")
+    parser.add_argument("--tgbottoken", required=True, help="TG BOT Token")
+    parser.add_argument("--tgchatid", required=True, help="TG Chat ID")
+    parser.add_argument("--fnyuser", required=True, help="FNY User")
+    parser.add_argument("--fnypswd", required=True, help="FNY Password")
+    parser.add_argument("--proxy", required=False, help="Proxy URL")
+    parser.add_argument("--resendkey", required=True, help="Resend Key")
+
+    args = parser.parse_args()
+    
+    now_day = datetime.now().weekday
+    if now_day == 5:
+        main(args)
