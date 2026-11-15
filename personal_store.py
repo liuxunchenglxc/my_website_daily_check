@@ -16,8 +16,8 @@ class PersonalStore:
 
     def __init__(
         self,
-        base_url: str,
-        token: str,
+        base_url: str = "https://hc.lxc.nya.je:24687/",
+        token: str = "",
         timeout: float = 30.0,
     ):
         self.base_url = base_url.rstrip("/")
