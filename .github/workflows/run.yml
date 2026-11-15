@@ -39,7 +39,8 @@ jobs:
             --fnyuser "${{ secrets.FNY_USER }}" \
             --fnypswd "${{ secrets.FNY_PSWD }}" \
             --proxy "${{ secrets.PROXY }}" \
-            --resendkey "${{ secrets.RESEND_KEY }}"
+            --resendkey "${{ secrets.RESEND_KEY }}" \
+            --storetoken "${{ secrets.STORE_TOKEN }}"
       
       - name: Save Updated Value
         uses: actions/cache/save@v6

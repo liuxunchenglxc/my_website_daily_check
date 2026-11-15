@@ -11,6 +11,7 @@ import argparse
 import time
 from datetime import datetime, timedelta
 import hashlib
+from personal_store import PersonalStore
 
 def load_netscape_cookies(cook: str):
     cookies_list = []
@@ -185,12 +186,17 @@ def main(args):
         sub_2 = tab.ele('text=复制订阅地址', timeout=1.5)
         sub_2.click(by_js=True, timeout=1.5)
         sub_url = pyperclip.paste()
-        if not is_repeat_url(sub_url, True):
-            print("[+] 检测到为全新URL。")
-            capture_and_send(tab, f"飞鸟云全新订阅地址：{sub_url}", time_wait=1.5)
+        
+        ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
+        req = requests.get(sub_url, headers={"User-Agent": "clash-verge/1.6.6"})
+        try:
+            req.raise_for_status()
+            ps.save("fny.yaml", req.text)
+            capture_and_send(tab, f"飞鸟云订阅地址：https://hc.lxc.nya.je:24687/store/fny.yaml?token={args.storetoken}", time_wait=1.5)
+        except:
+            capture_and_send(tab, f"飞鸟云订阅地址：{sub_url}", time_wait=1.5)
             send_resend_email(sub_url, status=True)
-        else:
-            print("[=] 检测到为重复URL。")
+
         tab.wait(3)
     except:
         error_msg = format_exc()
@@ -208,6 +214,7 @@ if __name__ == "__main__":
     parser.add_argument("--fnypswd", required=True, help="FNY Password")
     parser.add_argument("--proxy", required=False, help="Proxy URL")
     parser.add_argument("--resendkey", required=True, help="Resend Key")
+    parser.add_argument("--storetoken", required=True, help="Store Token")
 
     args = parser.parse_args()
     
