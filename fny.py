@@ -218,6 +218,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     
-    now_day = datetime.now().weekday
-    if now_day == 5:
-        main(args)
+    # now_day = datetime.now().weekday
+    # if now_day == 5:
+    main(args)
