@@ -42,13 +42,18 @@ def main(args):
         if data["version"] == version:
             if time.time() - float(data["time"]) < 7 * 24 * 3600:
                 is_find_meta = False
+                count = len(data["list"])
     else:
         data = {}
+        count = 0
     
-    Re_translate = True
+    re_translate = True
     translate_dict = ps.try_load_json(translate_dict_filename)
-    if not translate_dict or Re_translate:
+    if not translate_dict:
         translate_dict = {}
+    if re_translate:
+        translate_dict = {}
+        is_find_meta = True
     
     co = ChromiumOptions()
     co.set_argument('--no-sandbox')
@@ -118,18 +123,19 @@ def main(args):
             for l in lists:
                 list_dict[l["url"]] = l
             data["list"] = list_dict
+            count = len(data["list"])
             ps.save_json(filename, data, indent=None)
             ps.save_json(translate_dict_filename, translate_dict, indent=None)
         # add content
         for i, page_url in enumerate(data["list"]):
             item = data["list"][page_url]
             if item["is_coming_soon"]:
-                print(f"跳过Coming Soon: {i+1}/{len(lists)}")
+                print(f"跳过Coming Soon: {i+1}/{count}")
                 continue
             # 跳过已完成
             if "contents" in data:
                 if page_url in data:
-                    print(f"跳过已完成: {i+1}/{len(lists)}")
+                    print(f"跳过已完成: {i+1}/{count}")
                     continue
             tab.get(page_url)
             time.sleep(5)
@@ -151,9 +157,9 @@ def main(args):
                     data["contents"] = {}
                 data["contents"][page_url] = d
                 ps.save_json(filename, data, indent=None)
-                print(f"完成: {i+1}/{len(lists)}")
+                print(f"完成: {i+1}/{count}")
             else:
-                print(f"警告: {i+1}/{len(lists)} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
+                print(f"警告: {i+1}/{count} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
     except:
         error_msg = format_exc()
         print(error_msg)
