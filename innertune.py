@@ -4,28 +4,32 @@ from DrissionPage.common import Actions
 import time
 import argparse
 from traceback import format_exc
-import argostranslate.package
-import argostranslate.translate
+# import argostranslate.package
+# import argostranslate.translate
+from translator import Translator
 
-def translate(text):
-    return argostranslate.translate.translate(
-        text, "en", "zh"
-    )
+# def translate(text):
+#     return argostranslate.translate.translate(
+#         text, "en", "zh"
+#     )
 
 def main(args):
     # proxies = {
     #     "https": '127.0.0.1:1080',
     #     "http": '127.0.0.1:1080'
     # }
+    
+    translator = Translator(quantization="Q4_K_M", threads=4)
+    translator.start()
 
-    argostranslate.package.update_package_index()
-    # https://www.argosopentech.com/argospm/index/
-    packages = argostranslate.package.get_available_packages()
-    package = next(
-        p for p in packages
-        if p.from_code == "en" and p.to_code == "zh"
-    )
-    argostranslate.package.install_from_path(package.download())
+    # argostranslate.package.update_package_index()
+    # # https://www.argosopentech.com/argospm/index/
+    # packages = argostranslate.package.get_available_packages()
+    # package = next(
+    #     p for p in packages
+    #     if p.from_code == "en" and p.to_code == "zh"
+    # )
+    # argostranslate.package.install_from_path(package.download())
     
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     # ps.save_json("xxx.json", data, indent=None)
@@ -40,8 +44,10 @@ def main(args):
                 is_find_meta = False
     else:
         data = {}
+    
+    Re_translate = True
     translate_dict = ps.try_load_json(translate_dict_filename)
-    if not translate_dict:
+    if not translate_dict or Re_translate:
         translate_dict = {}
     
     co = ChromiumOptions()
@@ -89,13 +95,13 @@ def main(args):
                 if not l["title_en"]:
                     continue
                 if (l["title_en"] not in translate_dict):
-                    l["title_cn"] = translate(l["title_en"])
+                    l["title_cn"] = translator.translate(l["title_en"])
                     translate_dict[l["title_en"]] = l["title_cn"]
                 else:
                     l["title_cn"] = translate_dict[l["title_en"]]
                 if l["intro_en"]:
                     if (l["intro_en"] not in translate_dict):
-                        l["intro_cn"] = translate(l["intro_en"])
+                        l["intro_cn"] = translator.translate(l["intro_en"])
                         translate_dict[l["intro_en"]] = l["intro_cn"]
                     else:
                         l["intro_cn"] = translate_dict[l["intro_en"]]
@@ -115,11 +121,11 @@ def main(args):
             ps.save_json(filename, data, indent=None)
             ps.save_json(translate_dict_filename, translate_dict, indent=None)
         # add content
-        for i, item in enumerate(data["list"]):
+        for i, page_url in enumerate(data["list"]):
+            item = data["list"][page_url]
             if item["is_coming_soon"]:
                 print(f"跳过Coming Soon: {i+1}/{len(lists)}")
                 continue
-            page_url = item["url"]
             # 跳过已完成
             if "contents" in data:
                 if page_url in data:
@@ -152,6 +158,7 @@ def main(args):
         error_msg = format_exc()
         print(error_msg)
     print("执行完毕！")
+    translator.close()
 
 
 if __name__ == "__main__":
