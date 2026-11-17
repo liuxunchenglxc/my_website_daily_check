@@ -4,14 +4,29 @@ from DrissionPage.common import Actions
 import time
 import argparse
 from traceback import format_exc
-from deep_translator import MyMemoryTranslator
+import argostranslate.package
+import argostranslate.translate
+
+def translate(text):
+    return argostranslate.translate.translate(
+        text, "en", "zh"
+    )
 
 def main(args):
     # proxies = {
     #     "https": '127.0.0.1:1080',
     #     "http": '127.0.0.1:1080'
     # }
-    translator = MyMemoryTranslator(source="en-US", target="zh-CN")#, proxies=proxies)
+
+    argostranslate.package.update_package_index()
+    packages = argostranslate.package.get_available_packages()
+    print(packages)
+    package = next(
+        p for p in packages
+        if p.from_code == "en" and p.to_code == "zh"
+    )
+    argostranslate.package.install_from_path(package.download())
+    
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     # ps.save_json("xxx.json", data, indent=None)
     version = "v1"
@@ -69,7 +84,7 @@ def main(args):
             print(lists[:3])
             for i, l in enumerate(lists):
                 if (l["title_en"] not in translate_dict) and (l["intro_en"] not in translate_dict):
-                    l["title_cn"], l["intro_cn"] = translator.translate_batch([l["title_en"], l["intro_en"]])
+                    l["title_cn"], l["intro_cn"] = translate(l["title_en"]), translate(l["intro_en"])
                     translate_dict[l["title_en"]] = l["title_cn"]
                     translate_dict[l["intro_en"]] = l["intro_cn"]
                 else:
