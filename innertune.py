@@ -85,7 +85,6 @@ def main(args):
     ac.move_to((432, 136), duration=0.5).move_to((1428, 988), duration=0.5).click()
     
     try:
-        time.sleep(5)
         if is_find_meta:
             print("开始查询Playlist")
             lists_a = tab.eles("css:div.grid > a.text-left", timeout = 1.5)
