@@ -98,6 +98,15 @@ class PersonalStore:
         """
         return json.loads(self.load(filename))
 
+    def try_load_json(self, filename: str):
+        """
+        Load a file and deserialize its JSON content.
+        """
+        try:
+            return json.loads(self.load(filename))
+        except:
+            return None
+
     def exists(self, filename: str) -> bool:
         """
         Check whether a file exists.
