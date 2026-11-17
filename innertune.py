@@ -84,17 +84,21 @@ def main(args):
             print(f"完成了{len(lists)}个格子的信息收集")
             print(lists[:3])
             for i, l in enumerate(lists):
-                if (l["title_en"] not in translate_dict) and (l["intro_en"] not in translate_dict):
-                    if not l["title_en"]:
-                        continue
-                    if l["intro_en"]:
-                        l["title_cn"], l["intro_cn"] = translate(l["title_en"]), translate(l["intro_en"])
-                    else:
-                        l["title_cn"], l["intro_cn"] = translate(l["title_en"]), ""
+                if not l["title_en"]:
+                    continue
+                if (l["title_en"] not in translate_dict):
+                    l["title_cn"] = translate(l["title_en"])
                     translate_dict[l["title_en"]] = l["title_cn"]
-                    translate_dict[l["intro_en"]] = l["intro_cn"]
                 else:
-                    l["title_cn"], l["intro_cn"] = translate_dict[l["title_en"]], translate_dict[l["intro_en"]]
+                    l["title_cn"] = translate_dict[l["title_en"]]
+                if l["intro_en"]:
+                    if (l["intro_en"] not in translate_dict):
+                        l["intro_cn"] = translate(l["intro_en"])
+                        translate_dict[l["intro_en"]] = l["intro_cn"]
+                    else:
+                        l["intro_cn"] = translate_dict[l["intro_en"]]
+                else:
+                    l["intro_cn"] = ""
                 time.sleep(1)
                 lists[i] = l
                 print(f"{i+1}/{len(lists)} 已翻译")
