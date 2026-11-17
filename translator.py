@@ -206,6 +206,7 @@ class Translator:
 
         return None
 
+    
     def _install_server(self):
         existing = self._find_server()
 
@@ -215,9 +216,10 @@ class Translator:
 
         suffix, archive_type = self._platform_asset()
 
+        # Search recent releases instead of relying on /latest.
         api = (
             f"https://api.github.com/repos/"
-            f"{self.LLAMA_REPO}/releases/latest"
+            f"{self.LLAMA_REPO}/releases?per_page=100&page=1"
         )
 
         request = urllib.request.Request(
@@ -231,22 +233,28 @@ class Translator:
         with urllib.request.urlopen(
             request, timeout=30
         ) as response:
-            release = json.load(response)
+            releases = json.load(response)
 
-        tag = release["tag_name"]
+        selected = None
 
-        asset = next(
-            (
-                a for a in release["assets"]
-                if a["name"].endswith(suffix)
-            ),
-            None,
-        )
+        for release in releases:
+            if release.get("draft"):
+                continue
 
-        if not asset:
+            for asset in release.get("assets", []):
+                if asset["name"].endswith(suffix):
+                    selected = (release, asset)
+                    break
+
+            if selected:
+                break
+
+        if not selected:
             raise RuntimeError(
-                f"No matching llama.cpp release asset: {suffix}"
+                f"No matching asset found in recent releases: {suffix}"
             )
+
+        release, asset = selected
 
         self.server_dir.mkdir(
             parents=True, exist_ok=True
@@ -254,56 +262,66 @@ class Translator:
 
         archive = self.server_dir / asset["name"]
 
-        print(f"Installing llama.cpp: {tag}")
+        print(
+            f"Installing llama.cpp: "
+            f"{release['tag_name']} ({asset['name']})"
+        )
 
         self._download(
             asset["browser_download_url"],
             archive,
         )
 
-        if archive_type == "zip":
-            import zipfile
+        try:
+            if archive_type == "zip":
+                import zipfile
 
-            with zipfile.ZipFile(archive) as z:
-                root = self.server_dir.resolve()
+                with zipfile.ZipFile(archive) as z:
+                    root = self.server_dir.resolve()
 
-                for member in z.infolist():
-                    target = (root / member.filename).resolve()
-                    if target != root and root not in target.parents:
-                        raise RuntimeError(
-                            "Unsafe path in llama.cpp archive"
-                        )
+                    for member in z.infolist():
+                        target = (
+                            root / member.filename
+                        ).resolve()
 
-                z.extractall(root)
+                        if (
+                            target != root
+                            and root not in target.parents
+                        ):
+                            raise RuntimeError(
+                                "Unsafe archive path"
+                            )
 
-        else:
-            with tarfile.open(
-                archive, "r:gz"
-            ) as tar:
+                    z.extractall(root)
 
-                root = self.server_dir.resolve()
+            else:
+                with tarfile.open(
+                    archive, "r:gz"
+                ) as tar:
+                    root = self.server_dir.resolve()
 
-                for member in tar.getmembers():
-                    target = (
-                        root / member.name
-                    ).resolve()
+                    for member in tar.getmembers():
+                        target = (
+                            root / member.name
+                        ).resolve()
 
-                    if (
-                        target != root
-                        and root not in target.parents
-                    ):
-                        raise RuntimeError(
-                            "Unsafe path in llama.cpp archive"
-                        )
+                        if (
+                            target != root
+                            and root not in target.parents
+                        ):
+                            raise RuntimeError(
+                                "Unsafe archive path"
+                            )
 
-                    if member.issym() or member.islnk():
-                        raise RuntimeError(
-                            "Unexpected link in llama.cpp archive"
-                        )
+                        if member.issym() or member.islnk():
+                            raise RuntimeError(
+                                "Unexpected archive link"
+                            )
 
-                tar.extractall(root)
+                    tar.extractall(root)
 
-        archive.unlink(missing_ok=True)
+        finally:
+            archive.unlink(missing_ok=True)
 
         self.server_path = self._find_server()
 
@@ -317,7 +335,10 @@ class Translator:
                 self.server_path.stat().st_mode | 0o111
             )
 
-        print(f"llama-server installed: {self.server_path}")
+        print(
+            f"llama-server installed: {self.server_path}"
+        )
+
 
     # --------------------------------------------------
     # Install model
