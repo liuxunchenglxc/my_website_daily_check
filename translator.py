@@ -12,6 +12,7 @@ import time
 import urllib.request
 import urllib.error
 from pathlib import Path
+import sys
 
 
 class Translator:
@@ -154,37 +155,6 @@ class Translator:
             raise
 
     # --------------------------------------------------
-    # Platform detection
-    # --------------------------------------------------
-
-    @staticmethod
-    def _platform_asset():
-        arch = platform.machine().lower()
-
-        if os.name == "nt":
-            if arch in ("amd64", "x86_64"):
-                return "win-cpu-x64.zip", "zip"
-            if arch in ("arm64", "aarch64"):
-                return "win-cpu-arm64.zip", "zip"
-
-        elif platform.system() == "Darwin":
-            if arch in ("arm64", "aarch64"):
-                return "macos-arm64.tar.gz", "tar.gz"
-            if arch in ("amd64", "x86_64"):
-                return "macos-x64.tar.gz", "tar.gz"
-
-        elif platform.system() == "Linux":
-            if arch in ("amd64", "x86_64"):
-                return "ubuntu-x64.tar.gz", "tar.gz"
-            if arch in ("arm64", "aarch64"):
-                return "ubuntu-arm64.tar.gz", "tar.gz"
-
-        raise RuntimeError(
-            f"Unsupported platform: "
-            f"{platform.system()}/{arch}"
-        )
-
-    # --------------------------------------------------
     # Install llama.cpp
     # --------------------------------------------------
 
@@ -209,117 +179,33 @@ class Translator:
     
     def _install_server(self):
         existing = self._find_server()
-
         if existing:
             self.server_path = existing
             return
 
-        suffix, archive_type = self._platform_asset()
-
-        # Search recent releases instead of relying on /latest.
-        api = (
-            f"https://api.github.com/repos/"
-            f"{self.LLAMA_REPO}/releases?per_page=100&page=1"
-        )
-
-        request = urllib.request.Request(
-            api,
-            headers={
-                "User-Agent": "HY-MT-Python-Translator/1.0",
-                "Accept": "application/vnd.github+json",
-            },
-        )
-
-        with urllib.request.urlopen(
-            request, timeout=30
-        ) as response:
-            releases = json.load(response)
-
-        selected = None
-
-        for release in releases:
-            if release.get("draft"):
-                continue
-
-            for asset in release.get("assets", []):
-                if asset["name"].endswith(suffix):
-                    selected = (release, asset)
-                    break
-
-            if selected:
-                break
-
-        if not selected:
+        # 当前固定使用 llama.cpp b12473 Ubuntu x64 构建
+        if sys.platform != "linux" or platform.machine().lower() not in ("x86_64", "amd64"):
             raise RuntimeError(
-                f"No matching asset found in recent releases: {suffix}"
+                "The configured llama.cpp binary only supports Linux x86_64."
             )
 
-        release, asset = selected
-
-        self.server_dir.mkdir(
-            parents=True, exist_ok=True
+        url = (
+            "https://github.com/ggml-org/llama.cpp/releases/download/"
+            "b12473/llama-b12473-bin-ubuntu-x64.tar.gz"
         )
 
-        archive = self.server_dir / asset["name"]
+        self.server_dir.mkdir(parents=True, exist_ok=True)
+        archive = self.server_dir / "llama-b12473-bin-ubuntu-x64.tar.gz"
 
-        print(
-            f"Installing llama.cpp: "
-            f"{release['tag_name']} ({asset['name']})"
-        )
-
-        self._download(
-            asset["browser_download_url"],
-            archive,
-        )
+        print("Downloading llama.cpp b12473...")
+        self._download(url, archive)
 
         try:
-            if archive_type == "zip":
-                import zipfile
-
-                with zipfile.ZipFile(archive) as z:
-                    root = self.server_dir.resolve()
-
-                    for member in z.infolist():
-                        target = (
-                            root / member.filename
-                        ).resolve()
-
-                        if (
-                            target != root
-                            and root not in target.parents
-                        ):
-                            raise RuntimeError(
-                                "Unsafe archive path"
-                            )
-
-                    z.extractall(root)
-
-            else:
-                with tarfile.open(
-                    archive, "r:gz"
-                ) as tar:
-                    root = self.server_dir.resolve()
-
-                    for member in tar.getmembers():
-                        target = (
-                            root / member.name
-                        ).resolve()
-
-                        if (
-                            target != root
-                            and root not in target.parents
-                        ):
-                            raise RuntimeError(
-                                "Unsafe archive path"
-                            )
-
-                        if member.issym() or member.islnk():
-                            raise RuntimeError(
-                                "Unexpected archive link"
-                            )
-
-                    tar.extractall(root)
-
+            with tarfile.open(archive, "r:gz") as tar:
+                tar.extractall(
+                    path=self.server_dir,
+                    filter="data",
+                )
         finally:
             archive.unlink(missing_ok=True)
 
@@ -327,17 +213,14 @@ class Translator:
 
         if not self.server_path:
             raise RuntimeError(
-                "llama-server not found after extraction"
+                f"llama-server not found after extracting archive into {self.server_dir}"
             )
 
-        if os.name != "nt":
-            self.server_path.chmod(
-                self.server_path.stat().st_mode | 0o111
-            )
-
-        print(
-            f"llama-server installed: {self.server_path}"
+        self.server_path.chmod(
+            self.server_path.stat().st_mode | 0o111
         )
+
+        print(f"llama.cpp b12473 installed: {self.server_path}")
 
 
     # --------------------------------------------------
