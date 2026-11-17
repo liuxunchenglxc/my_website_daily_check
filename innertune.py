@@ -4,14 +4,15 @@ from DrissionPage.common import Actions
 import time
 import argparse
 from traceback import format_exc
-from deep_translator import GoogleTranslator
+from deep_translator import MyMemoryTranslator
 
 def main(args):
     # proxies = {
     #     "https": '127.0.0.1:1080',
     #     "http": '127.0.0.1:1080'
     # }
-    translator = GoogleTranslator(source="en", target="zh-CN")#, proxies=proxies)
+    translator = MyMemoryTranslator(source="en", target="zh-CN")#, proxies=proxies)
+    print(translator.get_supported_languages())
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     # ps.save_json("xxx.json", data, indent=None)
     version = "v1"
@@ -68,7 +69,12 @@ def main(args):
             print(f"完成了{len(lists)}个格子的信息收集")
             print(lists[:3])
             for i, l in enumerate(lists):
-                l["title_cn"], l["intro_cn"] = translator.translate_batch([l["title_en"], l["intro_en"]])
+                if (l["title_en"] not in translate_dict) and (l["intro_en"] not in translate_dict):
+                    l["title_cn"], l["intro_cn"] = translator.translate_batch([l["title_en"], l["intro_en"]])
+                    translate_dict[l["title_en"]] = l["title_cn"]
+                    translate_dict[l["intro_en"]] = l["intro_cn"]
+                else:
+                    l["title_cn"], l["intro_cn"] = translate_dict[l["title_en"]], translate_dict[l["intro_en"]]
                 time.sleep(1)
                 lists[i] = l
                 print(f"{i+1}/{len(lists)} 已翻译")
@@ -81,6 +87,7 @@ def main(args):
                 "list": lists
             }
             ps.save_json(filename, data, indent=None)
+            ps.save_json(translate_dict_filename, translate_dict, indent=None)
     except:
         error_msg = format_exc()
         print(error_msg)
