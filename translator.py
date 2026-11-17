@@ -305,7 +305,7 @@ class Translator:
                 )
 
             if self._healthy():
-                print("HY-MT1.5 server ready.")
+                print("HY-MT server ready.")
                 return self
 
             time.sleep(0.5)

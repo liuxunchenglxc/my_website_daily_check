@@ -144,14 +144,15 @@ def main(args):
         # add content
         for i, page_url in enumerate(data["list"]):
             item = data["list"][page_url]
+            print(f"进入: {i+1}/{count} {page_url}")
             if item["is_coming_soon"]:
                 print(f"跳过Coming Soon: {i+1}/{count}")
                 continue
             # 跳过已完成
-            # if "contents" in data:
-            #     if page_url in data["list"]:
-            #         print(f"跳过已完成: {i+1}/{count}")
-            #         continue
+            if "contents" in data:
+                if page_url in data["contents"]:
+                    print(f"跳过已完成: {i+1}/{count}")
+                    continue
             tab.get(page_url)
             time.sleep(5)
             btn = tab.ele("css:div.mt-6 > button", timeout=1.5)
@@ -175,6 +176,15 @@ def main(args):
                 print(f"完成: {i+1}/{count} 发现 {len(sentences)} 条肯定句")
             else:
                 print(f"警告: {i+1}/{count} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
+        # filter Cookie Policy
+        modify = False
+        for i, page_url in enumerate(data["contents"]):
+            if "Cookie Policy" in data["contents"][page_url]["sentences"][-1]:
+                data["contents"][page_url]["sentences"].pop(-1)
+                modify = True
+        if modify:
+            ps.save_json(filename, data, indent=None)
+            print(f"发现肯定句中的Cookie Policy，已过滤")
     except:
         error_msg = format_exc()
         print(error_msg)
