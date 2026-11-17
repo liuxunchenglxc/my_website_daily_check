@@ -101,7 +101,6 @@ def main(args):
                         l["intro_cn"] = translate_dict[l["intro_en"]]
                 else:
                     l["intro_cn"] = ""
-                time.sleep(1)
                 lists[i] = l
                 print(f"已翻译: {i+1}/{len(lists)}")
             print(f"完成了{len(lists)}个格子的信息翻译")
