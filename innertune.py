@@ -7,11 +7,11 @@ from traceback import format_exc
 from deep_translator import GoogleTranslator
 
 def main(args):
-    proxies = {
-        "https": '127.0.0.1:1080',
-        "http": '127.0.0.1:1080'
-    }
-    translator = GoogleTranslator(source="en", target="zh-CN", proxies=proxies)
+    # proxies = {
+    #     "https": '127.0.0.1:1080',
+    #     "http": '127.0.0.1:1080'
+    # }
+    translator = GoogleTranslator(source="en", target="zh-CN")#, proxies=proxies)
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     # ps.save_json("xxx.json", data, indent=None)
     version = "v1"
@@ -51,13 +51,13 @@ def main(args):
                 url_a = block.attr("href")
                 is_coming_soon = False
                 try:
-                    span = block.ele("css:div.relative > span", timeout = 0.1)
+                    span = block.ele("css:div.relative > span", timeout = 0.001)
                     if span.text == "Coming Soon":
                         is_coming_soon = True
                 except:
                     pass
-                title_en = block.ele("css:div.p-4 > h3", timeout = 0.1).text
-                intro_en = block.ele("css:div.p-4 > p", timeout = 0.1).text
+                title_en = block.ele("css:div.p-4 > h3", timeout = 0.001).text
+                intro_en = block.ele("css:div.p-4 > p", timeout = 0.001).text
                 list_dict = {
                     "url": url_a,
                     "is_coming_soon": is_coming_soon,
@@ -69,8 +69,9 @@ def main(args):
             print(lists[:3])
             for i, l in enumerate(lists):
                 l["title_cn"], l["intro_cn"] = translator.translate_batch([l["title_en"], l["intro_en"]])
-                time.sleep(0.25)
+                time.sleep(1)
                 lists[i] = l
+                print(f"{i+1}/{len(lists)} 已翻译")
             print(f"完成了{len(lists)}个格子的信息翻译")
             print(lists[:3])
             data = {
