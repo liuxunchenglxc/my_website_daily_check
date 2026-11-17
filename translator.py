@@ -36,13 +36,13 @@ class Translator:
         HF_ENDPOINT      Hugging Face mirror
     """
 
-    HF_REPO = "tencent/HY-MT1.5-1.8B-GGUF"
+    HF_REPO = "tencent/Hy-MT2-1.8B-GGUF"
     LLAMA_REPO = "ggml-org/llama.cpp"
 
     MODELS = {
-        "Q4_K_M": "HY-MT1.5-1.8B-Q4_K_M.gguf",
-        "Q6_K": "HY-MT1.5-1.8B-Q6_K.gguf",
-        "Q8_0": "HY-MT1.5-1.8B-Q8_0.gguf",
+        "Q4_K_M": "Hy-MT2-1.8B-Q4_K_M.gguf",
+        "Q6_K": "Hy-MT2-1.8B-Q6_K.gguf",
+        "Q8_0": "Hy-MT2-1.8B-Q8_0.gguf",
     }
 
     def __init__(
@@ -332,8 +332,8 @@ class Translator:
         self,
         text,
         target="Simplified Chinese",
-        temperature=0.3,
-        max_tokens=512,
+        temperature=0.7,
+        max_tokens=4096,
     ):
         if not text.strip():
             return ""
@@ -362,7 +362,9 @@ class Translator:
                 },
             ],
             "temperature": temperature,
-            "top_p": 0.9,
+            "top_p": 0.6,
+            "top_k": 20,
+            "repetition_penalty": 1.05,
             "max_tokens": max_tokens,
             "stream": False,
         }

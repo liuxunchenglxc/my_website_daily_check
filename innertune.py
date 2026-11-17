@@ -7,11 +7,44 @@ from traceback import format_exc
 # import argostranslate.package
 # import argostranslate.translate
 from translator import Translator
+import requests
+import io
 
 # def translate(text):
 #     return argostranslate.translate.translate(
 #         text, "en", "zh"
 #     )
+
+def capture_and_send(page, title, time_wait=1.5):
+    time.sleep(time_wait)
+    BOT_TOKEN = args.tgbottoken
+    CHAT_ID = args.tgchatid
+    
+    print("正在截取可视窗口图片（返回字节流）...")
+    img_bytes = page.get_screenshot(as_bytes='webp', full_page=False)
+    
+    print("正在通过 Telegram 发送图片...")
+    telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+    
+    # 文本参数
+    data = {
+        "chat_id": CHAT_ID,
+        "caption": f"DrissionPage截取页面 - {title}"
+    }
+    
+    # 将内存中的字节数据转换为 Telegram requests 接收的文件格式
+    files = {
+        "photo": ("screenshot.webp", io.BytesIO(img_bytes), "image/webp")
+    }
+    
+    # 发送请求
+    response = requests.post(telegram_url, data=data, files=files)
+    
+    result = response.json()
+    if result.get("ok"):
+        print("✅ 图片发送成功！")
+    else:
+        print(f"❌ 发送失败，原因: {result.get('description')}")
 
 def main(args):
     # proxies = {
@@ -67,6 +100,10 @@ def main(args):
     
     url = "https://innertune.com/affirmations"
     tab.get(url)
+    
+    time.sleep(5)
+    capture_and_send(tab, "查看是否有cookies")
+    return
     
     try:
         time.sleep(5)
