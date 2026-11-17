@@ -60,8 +60,8 @@ def main(args):
             print(f"完成了{len(lists)}个格子的信息收集")
             print(lists[:3])
             for i, l in enumerate(lists):
-                l["title_cn"] = translator.translate(l["title_en"])
-                l["intro_cn"] = translator.translate(l["intro_en"])
+                l["title_cn"], l["intro_cn"] = translator.translate_batch([l["title_en"], l["intro_en"]])
+                time.sleep(0.25)
                 lists[i] = l
             print(f"完成了{len(lists)}个格子的信息翻译")
             print(lists[:3])

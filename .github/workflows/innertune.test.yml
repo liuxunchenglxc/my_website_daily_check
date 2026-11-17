@@ -17,7 +17,7 @@ jobs:
       - name: 飞鸟云更新
         if: always()
         run: |
-          xvfb-run --server-args="-screen 0 1920x1080x24" python3 innertune.py \
+          xvfb-run --server-args="-screen 0 1920x1080x24" python3 -u innertune.py \
             --pterclubcookies "${{ secrets.PTER_COOK }}" \
             --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
             --tgchatid "${{ secrets.TG_CHAT_ID }}" \
