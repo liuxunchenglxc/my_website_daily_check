@@ -59,7 +59,7 @@ def main(args):
         data = {}
         count = 0
     
-    re_translate = True
+    re_translate = False
     translate_dict = ps.try_load_json(translate_dict_filename)
     if not translate_dict:
         translate_dict = {}
@@ -146,18 +146,30 @@ def main(args):
             item = data["list"][page_url]
             print(f"进入: {i+1}/{count} {page_url}")
             if item["is_coming_soon"]:
-                print(f"跳过Coming Soon: {i+1}/{count}")
+                print(f"跳过: {i+1}/{count} Coming Soon")
                 continue
             # 跳过已完成
-            if "contents" in data:
-                if page_url in data["contents"]:
-                    print(f"跳过已完成: {i+1}/{count}")
-                    continue
+            # if "contents" in data:
+            #     if page_url in data["contents"]:
+            #         print(f"跳过: {i+1}/{count} 已完成")
+            #         continue
             tab.get(page_url)
             time.sleep(5)
-            btn = tab.ele("css:div.mt-6 > button", timeout=1.5)
-            btn.click(by_js=True, timeout=1.5)
-            stns = tab.eles("css:div.flex > p", timeout=1.5)
+            try:
+                btn = tab.ele("css:div.mt-6 > button", timeout=1.5)
+                btn.click(by_js=True, timeout=1.5)
+            except:
+                try:
+                    cs = tab.ele("css:div.flex-1 > div.mb-6 > span.text-amber-400")
+                    if cs.text == "Coming Soon":
+                        data["list"][page_url]["is_coming_soon"] = True
+                        print(f"发现: {i+1}/{count} Coming Soon")
+                        ps.save_json(filename, data, indent=None)
+                        continue
+                except:
+                    print(f"警告: {i+1}/{count} 未点击按钮")
+                    pass
+            stns = tab.eles("css:div.relative > div.space-y-3 > div.items-start > p.text-sm", timeout=1.5)
             sentences = []
             for s in stns:
                 t = s.text

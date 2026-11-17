@@ -21,11 +21,11 @@ jobs:
       #   run: |
       #     nohup gost -L http://127.0.0.1:1080 -F "${{ secrets.PROXY }}" >/tmp/gost.log 2>&1 &
 
-      - name: Cache HY-MT
-        uses: actions/cache@v6
-        with:
-          path: .hymt
-          key: hymt-${{ runner.os }}-${{ runner.arch }}-q4-v1
+      # - name: Cache HY-MT
+      #   uses: actions/cache@v6
+      #   with:
+      #     path: .hymt
+      #     key: hymt-${{ runner.os }}-${{ runner.arch }}-q4-v1
 
       - name: Innertune
         if: always()
