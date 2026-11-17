@@ -11,7 +11,6 @@ def main(args):
     #     "https": '127.0.0.1:1080',
     #     "http": '127.0.0.1:1080'
     # }
-    print(MyMemoryTranslator().get_supported_languages())
     translator = MyMemoryTranslator(source="en-US", target="zh-CN")#, proxies=proxies)
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     # ps.save_json("xxx.json", data, indent=None)
