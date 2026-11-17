@@ -4,16 +4,9 @@ from DrissionPage.common import Actions
 import time
 import argparse
 from traceback import format_exc
-# import argostranslate.package
-# import argostranslate.translate
 from translator import Translator
 import requests
 import io
-
-# def translate(text):
-#     return argostranslate.translate.translate(
-#         text, "en", "zh"
-#     )
 
 def capture_and_send(page, title, time_wait=1.5):
     time.sleep(time_wait)
@@ -47,25 +40,11 @@ def capture_and_send(page, title, time_wait=1.5):
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
 def main(args):
-    # proxies = {
-    #     "https": '127.0.0.1:1080',
-    #     "http": '127.0.0.1:1080'
-    # }
     
     translator = Translator(quantization="Q4_K_M", threads=4)
     translator.start()
-
-    # argostranslate.package.update_package_index()
-    # # https://www.argosopentech.com/argospm/index/
-    # packages = argostranslate.package.get_available_packages()
-    # package = next(
-    #     p for p in packages
-    #     if p.from_code == "en" and p.to_code == "zh"
-    # )
-    # argostranslate.package.install_from_path(package.download())
     
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
-    # ps.save_json("xxx.json", data, indent=None)
     version = "v2"
     filename = "innertune_list.json"
     translate_dict_filename = "innertune_en_cn.json"
@@ -102,8 +81,8 @@ def main(args):
     tab.get(url)
     
     time.sleep(5)
-    capture_and_send(tab, "查看是否有cookies")
-    return
+    print("点击接收Cookies")
+    ac.move_to((432, 136), duration=0.5).move_to((1428, 988), duration=0.5).click()
     
     try:
         time.sleep(5)
@@ -170,10 +149,10 @@ def main(args):
                 print(f"跳过Coming Soon: {i+1}/{count}")
                 continue
             # 跳过已完成
-            if "contents" in data:
-                if page_url in data:
-                    print(f"跳过已完成: {i+1}/{count}")
-                    continue
+            # if "contents" in data:
+            #     if page_url in data["list"]:
+            #         print(f"跳过已完成: {i+1}/{count}")
+            #         continue
             tab.get(page_url)
             time.sleep(5)
             btn = tab.ele("css:div.mt-6 > button", timeout=1.5)
@@ -194,7 +173,7 @@ def main(args):
                     data["contents"] = {}
                 data["contents"][page_url] = d
                 ps.save_json(filename, data, indent=None)
-                print(f"完成: {i+1}/{count}")
+                print(f"完成: {i+1}/{count} 发现 {len(sentences)} 条肯定句")
             else:
                 print(f"警告: {i+1}/{count} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
     except:

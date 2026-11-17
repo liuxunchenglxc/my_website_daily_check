@@ -17,14 +17,6 @@ import sys
 
 class Translator:
     """
-    HY-MT1.5 offline translator.
-
-    Automatically downloads:
-        - llama.cpp CPU server from GitHub Releases
-        - HY-MT1.5 GGUF model from Hugging Face
-
-    Python dependencies: standard library only.
-
     Usage:
         with Translator() as t:
             print(t.translate("Hello world"))
