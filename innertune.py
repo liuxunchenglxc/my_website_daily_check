@@ -19,8 +19,8 @@ def main(args):
     # }
 
     argostranslate.package.update_package_index()
+    # https://www.argosopentech.com/argospm/index/
     packages = argostranslate.package.get_available_packages()
-    print(packages)
     package = next(
         p for p in packages
         if p.from_code == "en" and p.to_code == "zh"
@@ -29,7 +29,7 @@ def main(args):
     
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     # ps.save_json("xxx.json", data, indent=None)
-    version = "v1"
+    version = "v2"
     filename = "innertune_list.json"
     translate_dict_filename = "innertune_en_cn.json"
     is_find_meta = True
@@ -38,6 +38,8 @@ def main(args):
         if data["version"] == version:
             if time.time() - float(data["time"]) < 7 * 24 * 3600:
                 is_find_meta = False
+    else:
+        data = {}
     translate_dict = ps.try_load_json(translate_dict_filename)
     if not translate_dict:
         translate_dict = {}
@@ -101,17 +103,52 @@ def main(args):
                     l["intro_cn"] = ""
                 time.sleep(1)
                 lists[i] = l
-                print(f"{i+1}/{len(lists)} 已翻译")
+                print(f"已翻译: {i+1}/{len(lists)}")
             print(f"完成了{len(lists)}个格子的信息翻译")
             print(lists[:3])
-            data = {
-                "url": "https://innertune.com/affirmations",
-                "version": version,
-                "time": time.time(),
-                "list": lists
-            }
+            data["url"] = "https://innertune.com/affirmations"
+            data["version"] = version
+            data["time"] = time.time()
+            list_dict = {}
+            for l in lists:
+                list_dict[l["url"]] = l
+            data["list"] = list_dict
             ps.save_json(filename, data, indent=None)
             ps.save_json(translate_dict_filename, translate_dict, indent=None)
+        # add content
+        for i, item in enumerate(data["list"]):
+            if item["is_coming_soon"]:
+                print(f"跳过Coming Soon: {i+1}/{len(lists)}")
+                continue
+            page_url = item["url"]
+            # 跳过已完成
+            if "contents" in data:
+                if page_url in data:
+                    print(f"跳过已完成: {i+1}/{len(lists)}")
+                    continue
+            tab.get(page_url)
+            time.sleep(5)
+            btn = tab.ele("css:div.mt-6 > button", timeout=1.5)
+            btn.click(by_js=True, timeout=1.5)
+            stns = tab.eles("css:div.flex > p", timeout=1.5)
+            sentences = []
+            for s in stns:
+                t = s.text
+                if t:
+                    sentences.append(t)
+            if len(sentences) > 8:
+                d = {
+                    "url": page_url,
+                    "sentences": sentences,
+                    "time": time.time(),
+                }
+                if "contents" not in data:
+                    data["contents"] = {}
+                data["contents"][page_url] = d
+                ps.save_json(filename, data, indent=None)
+                print(f"完成: {i+1}/{len(lists)}")
+            else:
+                print(f"警告: {i+1}/{len(lists)} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
     except:
         error_msg = format_exc()
         print(error_msg)
