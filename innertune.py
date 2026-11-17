@@ -7,17 +7,26 @@ from traceback import format_exc
 from deep_translator import GoogleTranslator
 
 def main(args):
-    translator = GoogleTranslator(source="en", target="zh-CN")
+    proxy = args.proxy.split("://")[1]
+    proxies = {
+        "https": proxy,
+        "http": proxy
+    }
+    translator = GoogleTranslator(source="en", target="zh-CN", proxies=proxies)
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     # ps.save_json("xxx.json", data, indent=None)
     version = "v1"
     filename = "innertune_list.json"
+    translate_dict_filename = "innertune_en_cn.json"
     is_find_meta = True
     data = ps.try_load_json(filename)
     if data:
         if data["version"] == version:
             if time.time() - float(data["time"]) < 7 * 24 * 3600:
                 is_find_meta = False
+    translate_dict = ps.try_load_json(translate_dict_filename)
+    if not translate_dict:
+        translate_dict = {}
     
     co = ChromiumOptions()
     co.set_argument('--no-sandbox')
