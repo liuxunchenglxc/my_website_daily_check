@@ -79,10 +79,10 @@ def main(args):
     
     url = "https://innertune.com/affirmations"
     tab.get(url)
-    
     time.sleep(5)
-    print("点击接收Cookies")
-    ac.move_to((432, 136), duration=0.5).move_to((1428, 988), duration=0.5).click()
+    
+    # print("点击接收Cookies")
+    # ac.move_to((432, 136), duration=0.5).move_to((1428, 988), duration=0.5).click()
     
     try:
         if is_find_meta:
@@ -94,7 +94,7 @@ def main(args):
                 url_a = block.attr("href")
                 is_coming_soon = False
                 try:
-                    span = block.ele("css:div.relative > span", timeout = 0.001)
+                    span = block.ele("css:div.relative > span.tracking-wider", timeout = 0.001)
                     if span.text == "Coming Soon":
                         is_coming_soon = True
                 except:
@@ -145,14 +145,16 @@ def main(args):
         for i, page_url in enumerate(data["list"]):
             item = data["list"][page_url]
             print(f"进入: {i+1}/{count} {page_url}")
+            # 跳过Coming Soon
             if item["is_coming_soon"]:
                 print(f"跳过: {i+1}/{count} Coming Soon")
                 continue
             # 跳过已完成
-            # if "contents" in data:
-            #     if page_url in data["contents"]:
-            #         print(f"跳过: {i+1}/{count} 已完成")
-            #         continue
+            if "contents" in data:
+                if page_url in data["contents"]:
+                    print(f"跳过: {i+1}/{count} 已完成")
+                    continue
+                
             tab.get(page_url)
             time.sleep(5)
             try:
@@ -188,15 +190,6 @@ def main(args):
                 print(f"完成: {i+1}/{count} 发现 {len(sentences)} 条肯定句")
             else:
                 print(f"警告: {i+1}/{count} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
-        # filter Cookie Policy
-        modify = False
-        for i, page_url in enumerate(data["contents"]):
-            if "Cookie Policy" in data["contents"][page_url]["sentences"][-1]:
-                data["contents"][page_url]["sentences"].pop(-1)
-                modify = True
-        if modify:
-            ps.save_json(filename, data, indent=None)
-            print(f"发现肯定句中的Cookie Policy，已过滤")
     except:
         error_msg = format_exc()
         print(error_msg)

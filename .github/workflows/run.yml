@@ -20,14 +20,6 @@ jobs:
             --pterclubcookies "${{ secrets.PTER_COOK }}" \
             --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
             --tgchatid "${{ secrets.TG_CHAT_ID }}"
-      
-      - uses: actions/cache/restore@v6
-        id: cache
-        with:
-          path: fnyhash.txt
-          key: fnyhash-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            fnyhash-
 
       - name: 飞鸟云更新
         if: always()
@@ -41,9 +33,16 @@ jobs:
             --proxy "${{ secrets.PROXY }}" \
             --resendkey "${{ secrets.RESEND_KEY }}" \
             --storetoken "${{ secrets.STORE_TOKEN }}"
-      
-      - name: Save Updated Value
-        uses: actions/cache/save@v6
-        with:
-          path: fnyhash.txt
-          key: fnyhash-${{ github.run_id }}-${{ github.run_attempt }}
+        
+      - name: Innertune爬取
+        if: always()
+        run: |
+          xvfb-run --server-args="-screen 0 1920x1080x24" python3 -u innertune.py \
+            --pterclubcookies "${{ secrets.PTER_COOK }}" \
+            --tgbottoken "${{ secrets.TG_BOT_TOKEN }}" \
+            --tgchatid "${{ secrets.TG_CHAT_ID }}" \
+            --fnyuser "${{ secrets.FNY_USER }}" \
+            --fnypswd "${{ secrets.FNY_PSWD }}" \
+            --proxy "${{ secrets.PROXY }}" \
+            --resendkey "${{ secrets.RESEND_KEY }}" \
+            --storetoken "${{ secrets.STORE_TOKEN }}"
