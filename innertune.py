@@ -7,10 +7,9 @@ from traceback import format_exc
 from deep_translator import GoogleTranslator
 
 def main(args):
-    proxy = args.proxy.split("://")[1]
     proxies = {
-        "https": proxy,
-        "http": proxy
+        "https": '127.0.0.1:1080',
+        "http": '127.0.0.1:1080'
     }
     translator = GoogleTranslator(source="en", target="zh-CN", proxies=proxies)
     ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)

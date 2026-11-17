@@ -14,7 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: 飞鸟云更新
+      - name: Set up proxy
+        if: always()
+        run: |
+          nohup gost -L http://127.0.0.1:1080 -F "${{ secrets.PROXY }}" >/tmp/gost.log 2>&1 &
+
+      - name: Innertune
         if: always()
         run: |
           xvfb-run --server-args="-screen 0 1920x1080x24" python3 -u innertune.py \
