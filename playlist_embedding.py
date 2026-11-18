@@ -69,6 +69,8 @@ import numpy as np
 import sys
 import argparse
 
+from llama_cpp import update_llama_version
+update_llama_version()
 from llama_cpp import LLAMA_REPO, LLAMA_VERSION, LLAMA_FILE
 
 class PlaylistEmbedding:

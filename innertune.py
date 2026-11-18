@@ -9,7 +9,6 @@ import requests
 import io
 from playlist_embedding import PlaylistEmbedding
 import os
-from llama_cpp import update_llama_version
 
 def capture_and_send(page, title, time_wait=1.5):
     time.sleep(time_wait)
@@ -43,7 +42,6 @@ def capture_and_send(page, title, time_wait=1.5):
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
 def main(args):
-    update_llama_version()
     translator = Translator(quantization="Q4_K_M", threads=4)
     translator.start()
     
@@ -196,7 +194,7 @@ def main(args):
             else:
                 print(f"警告: {i+1}/{count} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
         # embedding when is_add_content
-        if is_add_content or True:
+        if is_add_content:
             with PlaylistEmbedding(
                 quantization="Q8_0",
                 threads=4,

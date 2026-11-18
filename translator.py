@@ -14,6 +14,8 @@ import urllib.error
 from pathlib import Path
 import sys
 
+from llama_cpp import update_llama_version
+update_llama_version()
 from llama_cpp import LLAMA_REPO, LLAMA_VERSION, LLAMA_FILE
 
 
@@ -185,9 +187,9 @@ class Translator:
         url = f"https://github.com/{LLAMA_REPO}/releases/download/{LLAMA_VERSION}/{LLAMA_FILE}"
 
         self.server_dir.mkdir(parents=True, exist_ok=True)
-        archive = self.server_dir / "llama-b12473-bin-ubuntu-x64.tar.gz"
+        archive = self.server_dir / f"llama-{LLAMA_VERSION}-bin-ubuntu-x64.tar.gz"
 
-        print("Downloading llama.cpp b12473...")
+        print(f"Downloading llama.cpp {LLAMA_VERSION}...")
         self._download(url, archive)
 
         try:
@@ -210,7 +212,7 @@ class Translator:
             self.server_path.stat().st_mode | 0o111
         )
 
-        print(f"llama.cpp b12473 installed: {self.server_path}")
+        print(f"llama.cpp {LLAMA_VERSION} installed: {self.server_path}")
 
 
     # --------------------------------------------------

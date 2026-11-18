@@ -8,7 +8,7 @@ def update_llama_version():
     global LLAMA_VERSION, LLAMA_FILE
     try:
         LLAMA_VERSION = requests.get(
-            "https://api.github.com/repos/yt-dlp/yt-dlp/releases"
+            f"https://api.github.com/repos/{LLAMA_REPO}/releases"
         ).json()[0]["tag_name"]
     except:
         LLAMA_VERSION = "b12503"
