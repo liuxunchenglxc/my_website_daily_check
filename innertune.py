@@ -217,7 +217,8 @@ def main(args):
                     else:
                         l["core_sentence_cn"] = ""
                     results["playlist_analysis"][k] = l
-                    print(f"已翻译核心句: {i+1}/{len(lists)}")
+                    print(f"已翻译核心句: {i+1}/{len(results["playlist_analysis"])}")
+                ps.save_json(translate_dict_filename, translate_dict, indent=None)
                 ps.save_json("innertune_list_analysis.json", results["playlist_analysis"], indent=None)
                 ps.save_json("innertune_list_hierarchy.json", results["playlist_hierarchy"], indent=None)
                 ps.save_json("innertune_list_neighbors.json", results["playlist_neighbors"], indent=None)
