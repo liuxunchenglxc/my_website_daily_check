@@ -9,6 +9,7 @@ import requests
 import io
 from playlist_embedding import PlaylistEmbedding
 import os
+from llama_cpp import update_llama_version
 
 def capture_and_send(page, title, time_wait=1.5):
     time.sleep(time_wait)
@@ -42,7 +43,7 @@ def capture_and_send(page, title, time_wait=1.5):
         print(f"❌ 发送失败，原因: {result.get('description')}")
 
 def main(args):
-    
+    update_llama_version()
     translator = Translator(quantization="Q4_K_M", threads=4)
     translator.start()
     
@@ -205,7 +206,8 @@ def main(args):
                     output_dir=None,
                 )
             if results:
-                for i, l in enumerate(results["playlist_analysis"]):
+                for i, kv in enumerate(results["playlist_analysis"].items()):
+                    k, l = kv
                     if l["core_sentence_en"]:
                         if (l["core_sentence_en"] not in translate_dict):
                             l["core_sentence_cn"] = translator.translate(l["core_sentence_en"])
@@ -214,7 +216,7 @@ def main(args):
                             l["core_sentence_cn"] = translate_dict[l["core_sentence_en"]]
                     else:
                         l["core_sentence_cn"] = ""
-                    results["playlist_analysis"][i] = l
+                    results["playlist_analysis"][k] = l
                     print(f"已翻译核心句: {i+1}/{len(lists)}")
                 ps.save_json("innertune_list_analysis.json", results["playlist_analysis"], indent=None)
                 ps.save_json("innertune_list_hierarchy.json", results["playlist_hierarchy"], indent=None)

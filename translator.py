@@ -14,6 +14,8 @@ import urllib.error
 from pathlib import Path
 import sys
 
+from llama_cpp import LLAMA_REPO, LLAMA_VERSION, LLAMA_FILE
+
 
 class Translator:
     """
@@ -29,7 +31,6 @@ class Translator:
     """
 
     HF_REPO = "tencent/Hy-MT2-1.8B-GGUF"
-    LLAMA_REPO = "ggml-org/llama.cpp"
 
     MODELS = {
         "Q4_K_M": "Hy-MT2-1.8B-Q4_K_M.gguf",
@@ -181,10 +182,7 @@ class Translator:
                 "The configured llama.cpp binary only supports Linux x86_64."
             )
 
-        url = (
-            "https://github.com/ggml-org/llama.cpp/releases/download/"
-            "b12473/llama-b12473-bin-ubuntu-x64.tar.gz"
-        )
+        url = f"https://github.com/{LLAMA_REPO}/releases/download/{LLAMA_VERSION}/{LLAMA_FILE}"
 
         self.server_dir.mkdir(parents=True, exist_ok=True)
         archive = self.server_dir / "llama-b12473-bin-ubuntu-x64.tar.gz"

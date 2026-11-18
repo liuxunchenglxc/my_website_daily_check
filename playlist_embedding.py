@@ -69,6 +69,7 @@ import numpy as np
 import sys
 import argparse
 
+from llama_cpp import LLAMA_REPO, LLAMA_VERSION, LLAMA_FILE
 
 class PlaylistEmbedding:
     """Embed affirmations, find playlist medoids, and cluster playlists.
@@ -119,12 +120,7 @@ class PlaylistEmbedding:
         },
     }
 
-    LLAMA_VERSION = "b12473"
-    LLAMA_REPO = "ggml-org/llama.cpp"
-    LLAMA_LINUX_X64_URL = (
-        "https://github.com/ggml-org/llama.cpp/releases/download/"
-        "b12473/llama-b12473-bin-ubuntu-x64.tar.gz"
-    )
+    LLAMA_LINUX_X64_URL = f"https://github.com/{LLAMA_REPO}/releases/download/{LLAMA_VERSION}/{LLAMA_FILE}"
     EMBEDDING_DIMENSION = 768
     INPUT_PREFIX = "Document: "
     POOLING = "last"
@@ -317,7 +313,7 @@ class PlaylistEmbedding:
                 "On another platform, set LLAMA_SERVER to an existing executable."
             )
 
-        archive = self.server_dir / f"llama-{self.LLAMA_VERSION}-bin-ubuntu-x64.tar.gz"
+        archive = self.server_dir / LLAMA_FILE
         self._download(self.LLAMA_LINUX_X64_URL, archive)
         try:
             with tarfile.open(archive, "r:gz") as tar:
@@ -1013,7 +1009,7 @@ class PlaylistEmbedding:
                 "intro_cn": self.playlist_cores[key]["intro_cn"],
                 "core_sentence_en": self.playlist_cores[key]["core_sentence_en"],
             }
-        playlist_analysis[key] = pa
+        playlist_analysis[pa["url"]] = pa
 
         results = {
             "playlist_analysis": playlist_analysis,
@@ -1038,7 +1034,7 @@ class PlaylistEmbedding:
                 "intro_cn": self.playlist_cores[key]["intro_cn"],
                 "core_sentence_en": self.playlist_cores[key]["core_sentence_en"],
             }
-        playlist_analysis[key] = pa
+        playlist_analysis[pa["url"]] = pa
 
         self._write_json(
             output_dir / "playlist_analysis.json",
@@ -1063,7 +1059,7 @@ class PlaylistEmbedding:
             "normalization": "L2",
             "playlist_core_method": "medoid-nearest-to-normalized-mean",
             "playlist_clustering": "average-linkage/cosine over core-sentence vectors",
-            "llama_cpp_version": self.LLAMA_VERSION,
+            "llama_cpp_version": LLAMA_VERSION,
             "playlist_count": len(self.playlist_cores),
             "license": "CC BY-NC 4.0; check terms before commercial use",
         }
