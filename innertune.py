@@ -7,6 +7,8 @@ from traceback import format_exc
 from translator import Translator
 import requests
 import io
+from playlist_embedding import PlaylistEmbedding
+import os
 
 def capture_and_send(page, title, time_wait=1.5):
     time.sleep(time_wait)
@@ -190,6 +192,19 @@ def main(args):
                 print(f"完成: {i+1}/{count} 发现 {len(sentences)} 条肯定句")
             else:
                 print(f"警告: {i+1}/{count} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
+        # embedding
+        with PlaylistEmbedding(
+            quantization="Q8_0",
+            threads=4,
+        ) as analyzer:
+            results = analyzer.analyze_json(
+                data,
+                output_dir=None,
+            )
+        if results:
+            ps.save_json("innertune_list_analysis.json", results["playlist_analysis"], indent=None)
+            ps.save_json("innertune_list_hierarchy.json", results["playlist_hierarchy"], indent=None)
+            ps.save_json("innertune_list_neighbors.json", results["playlist_neighbors"], indent=None)
     except:
         error_msg = format_exc()
         print(error_msg)
