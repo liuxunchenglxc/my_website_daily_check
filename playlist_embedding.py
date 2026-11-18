@@ -778,29 +778,29 @@ class PlaylistEmbedding:
             representative_index = 0
         representative = members[representative_index]
 
-        playlist_rows = [
-            {
-                "playlist_id": member["playlist_id"],
-                "title_en": member["title_en"],
-                "title_cn": member["title_cn"],
-                "intro_en": member["intro_en"],
-                "intro_cn": member["intro_cn"],
-                "core_sentence_en": member["core_sentence_en"],
-            }
-            for member in members
-        ]
+        # playlist_rows = [
+        #     {
+        #         "playlist_id": member["playlist_id"],
+        #         # "title_en": member["title_en"],
+        #         # "title_cn": member["title_cn"],
+        #         # "intro_en": member["intro_en"],
+        #         # "intro_cn": member["intro_cn"],
+        #         # "core_sentence_en": member["core_sentence_en"],
+        #     }
+        #     for member in members
+        # ]
         return {
             "node_id": node_id,
             "playlist_count": len(members),
             "playlist_ids": ids,
-            "playlists": playlist_rows,
-            "core_sentences_en": [member["core_sentence_en"] for member in members],
+            # "playlists": playlist_rows,
+            # "core_sentences_en": [member["core_sentence_en"] for member in members],
             "representative_playlist_id": representative["playlist_id"],
-            "representative_playlist_title_en": representative["title_en"],
-            "representative_playlist_title_cn": representative["title_cn"],
-            "representative_playlist_intro_en": representative["intro_en"],
-            "representative_playlist_intro_cn": representative["intro_cn"],
-            "representative_core_sentence_en": representative["core_sentence_en"],
+            # "representative_playlist_title_en": representative["title_en"],
+            # "representative_playlist_title_cn": representative["title_cn"],
+            # "representative_playlist_intro_en": representative["intro_en"],
+            # "representative_playlist_intro_cn": representative["intro_cn"],
+            # "representative_core_sentence_en": representative["core_sentence_en"],
         }
 
     def build_hierarchy(self) -> dict[str, Any]:
@@ -831,11 +831,11 @@ class PlaylistEmbedding:
                     "node_id": leaf_id,
                     "type": "playlist",
                     "playlist_id": record["playlist_id"],
-                    "title_en": record["title_en"],
-                    "title_cn": record["title_cn"],
-                    "intro_en": record["intro_en"],
-                    "intro_cn": record["intro_cn"],
-                    "core_sentence_en": record["core_sentence_en"],
+                    # "title_en": record["title_en"],
+                    # "title_cn": record["title_cn"],
+                    # "intro_en": record["intro_en"],
+                    # "intro_cn": record["intro_cn"],
+                    # "core_sentence_en": record["core_sentence_en"],
                 }
             )
 
@@ -951,11 +951,11 @@ class PlaylistEmbedding:
             self.neighbors[record["playlist_id"]] = [
                 {
                     "playlist_id": records[int(other)]["playlist_id"],
-                    "title_en": records[int(other)]["title_en"],
-                    "title_cn": records[int(other)]["title_cn"],
-                    "intro_en": records[int(other)]["intro_en"],
-                    "intro_cn": records[int(other)]["intro_cn"],
-                    "core_sentence_en": records[int(other)]["core_sentence_en"],
+                    # "title_en": records[int(other)]["title_en"],
+                    # "title_cn": records[int(other)]["title_cn"],
+                    # "intro_en": records[int(other)]["intro_en"],
+                    # "intro_cn": records[int(other)]["intro_cn"],
+                    # "core_sentence_en": records[int(other)]["core_sentence_en"],
                     "similarity": float(similarities[index, int(other)]),
                 }
                 for other in order
@@ -1002,9 +1002,21 @@ class PlaylistEmbedding:
         )
         hierarchy = self.build_hierarchy()
         neighbors = self.build_playlist_neighbors(top_k=top_k)
+        
+        playlist_analysis = {}
+        for key in self.playlist_cores:
+            pa = {
+                "url": self.playlist_cores[key]["playlist_id"],
+                "title_en": self.playlist_cores[key]["title_en"],
+                "title_cn": self.playlist_cores[key]["title_cn"],
+                "intro_en": self.playlist_cores[key]["intro_en"],
+                "intro_cn": self.playlist_cores[key]["intro_cn"],
+                "core_sentence_en": self.playlist_cores[key]["core_sentence_en"],
+            }
+        playlist_analysis[key] = pa
 
         results = {
-            "playlist_analysis": list(self.playlist_cores.values()),
+            "playlist_analysis": playlist_analysis,
             "playlist_hierarchy": hierarchy,
             "playlist_neighbors": neighbors,
         }
@@ -1015,10 +1027,22 @@ class PlaylistEmbedding:
     def save_results(self, output_dir: str | Path) -> None:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        
+        playlist_analysis = {}
+        for key in self.playlist_cores:
+            pa = {
+                "url": self.playlist_cores[key]["playlist_id"],
+                "title_en": self.playlist_cores[key]["title_en"],
+                "title_cn": self.playlist_cores[key]["title_cn"],
+                "intro_en": self.playlist_cores[key]["intro_en"],
+                "intro_cn": self.playlist_cores[key]["intro_cn"],
+                "core_sentence_en": self.playlist_cores[key]["core_sentence_en"],
+            }
+        playlist_analysis[key] = pa
 
         self._write_json(
             output_dir / "playlist_analysis.json",
-            list(self.playlist_cores.values()),
+            playlist_analysis,
         )
         if self.hierarchy is None:
             self.build_hierarchy()

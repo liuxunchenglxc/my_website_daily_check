@@ -205,6 +205,17 @@ def main(args):
                     output_dir=None,
                 )
             if results:
+                for i, l in enumerate(results["playlist_analysis"]):
+                    if l["core_sentence_en"]:
+                        if (l["core_sentence_en"] not in translate_dict):
+                            l["core_sentence_cn"] = translator.translate(l["core_sentence_en"])
+                            translate_dict[l["core_sentence_en"]] = l["core_sentence_cn"]
+                        else:
+                            l["core_sentence_cn"] = translate_dict[l["core_sentence_en"]]
+                    else:
+                        l["core_sentence_cn"] = ""
+                    results["playlist_analysis"][i] = l
+                    print(f"已翻译核心句: {i+1}/{len(lists)}")
                 ps.save_json("innertune_list_analysis.json", results["playlist_analysis"], indent=None)
                 ps.save_json("innertune_list_hierarchy.json", results["playlist_hierarchy"], indent=None)
                 ps.save_json("innertune_list_neighbors.json", results["playlist_neighbors"], indent=None)
