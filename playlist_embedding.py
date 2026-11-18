@@ -597,17 +597,24 @@ class PlaylistEmbedding:
                 continue
 
             url = str(content.get("url") or playlist_url)
-            title = (
+            title_en = (
                 metadata.get("title_en")
                 or content.get("title_en")
+                or cls._fallback_title(url)
+            )
+            title_cn = (
+                metadata.get("title_cn")
+                or content.get("title_cn")
                 or cls._fallback_title(url)
             )
             playlists.append(
                 {
                     "playlist_id": url,
                     "playlist_url": url,
-                    "title": str(title),
-                    "intro": metadata.get("intro_en") or content.get("intro_en"),
+                    "title_en": str(title_en),
+                    "title_cn": str(title_cn),
+                    "intro_en": metadata.get("intro_en") or content.get("intro_en"),
+                    "intro_cn": metadata.get("intro_cn") or content.get("intro_cn"),
                     "time": content.get("time", metadata.get("time")),
                     "sentences": clean_sentences,
                 }
@@ -636,10 +643,12 @@ class PlaylistEmbedding:
     @staticmethod
     def find_core_sentence(
         playlist_id: str,
-        playlist_title: str,
+        title_en: str,
+        title_cn: str,
         sentence_map: dict[tuple[float, ...], list[str]],
         playlist_url: str | None = None,
-        intro: str | None = None,
+        intro_en: str | None = None,
+        intro_cn: str | None = None,
     ) -> dict[str, Any]:
         """Find the medoid nearest to the playlist mean and clear sentence_map.
 
@@ -686,12 +695,14 @@ class PlaylistEmbedding:
         result = {
             "playlist_id": playlist_id,
             "playlist_url": playlist_url or playlist_id,
-            "title": playlist_title,
-            "intro": intro,
+            "title_en": title_en,
+            "title_cn": title_cn,
+            "intro_en": intro_en,
+            "intro_cn": intro_cn,
             "sentence_count": count,
             "cohesion": cohesion,
             "core_sentence_vector": core_vector.tolist(),
-            "core_sentence": core_sentence,
+            "core_sentence_en": core_sentence,
         }
 
         sentence_map.clear()  # Explicitly discard vector -> sentence map.
@@ -726,10 +737,12 @@ class PlaylistEmbedding:
             )
             core = self.find_core_sentence(
                 playlist_id=playlist_id,
-                playlist_title=str(playlist.get("title", playlist_id)),
+                title_en=str(playlist.get("title_en", playlist_id)),
+                title_cn=str(playlist.get("title_cn", playlist_id)),
                 sentence_map=sentence_map,
                 playlist_url=playlist.get("playlist_url"),
-                intro=playlist.get("intro"),
+                intro_en=playlist.get("intro_en"),
+                intro_cn=playlist.get("intro_cn"),
             )
             self.playlist_cores[playlist_id] = core
 
@@ -768,8 +781,11 @@ class PlaylistEmbedding:
         playlist_rows = [
             {
                 "playlist_id": member["playlist_id"],
-                "title": member["title"],
-                "core_sentence": member["core_sentence"],
+                "title_en": member["title_en"],
+                "title_cn": member["title_cn"],
+                "intro_en": member["intro_en"],
+                "intro_cn": member["intro_cn"],
+                "core_sentence_en": member["core_sentence_en"],
             }
             for member in members
         ]
@@ -778,10 +794,13 @@ class PlaylistEmbedding:
             "playlist_count": len(members),
             "playlist_ids": ids,
             "playlists": playlist_rows,
-            "core_sentences": [member["core_sentence"] for member in members],
+            "core_sentences_en": [member["core_sentence_en"] for member in members],
             "representative_playlist_id": representative["playlist_id"],
-            "representative_playlist_title": representative["title"],
-            "representative_core_sentence": representative["core_sentence"],
+            "representative_playlist_title_en": representative["title_en"],
+            "representative_playlist_title_cn": representative["title_cn"],
+            "representative_playlist_intro_en": representative["intro_en"],
+            "representative_playlist_intro_cn": representative["intro_cn"],
+            "representative_core_sentence_en": representative["core_sentence_en"],
         }
 
     def build_hierarchy(self) -> dict[str, Any]:
@@ -812,8 +831,11 @@ class PlaylistEmbedding:
                     "node_id": leaf_id,
                     "type": "playlist",
                     "playlist_id": record["playlist_id"],
-                    "title": record["title"],
-                    "core_sentence": record["core_sentence"],
+                    "title_en": record["title_en"],
+                    "title_cn": record["title_cn"],
+                    "intro_en": record["intro_en"],
+                    "intro_cn": record["intro_cn"],
+                    "core_sentence_en": record["core_sentence_en"],
                 }
             )
 
@@ -929,8 +951,11 @@ class PlaylistEmbedding:
             self.neighbors[record["playlist_id"]] = [
                 {
                     "playlist_id": records[int(other)]["playlist_id"],
-                    "title": records[int(other)]["title"],
-                    "core_sentence": records[int(other)]["core_sentence"],
+                    "title_en": records[int(other)]["title_en"],
+                    "title_cn": records[int(other)]["title_cn"],
+                    "intro_en": records[int(other)]["intro_en"],
+                    "intro_cn": records[int(other)]["intro_cn"],
+                    "core_sentence_en": records[int(other)]["core_sentence_en"],
                     "similarity": float(similarities[index, int(other)]),
                 }
                 for other in order

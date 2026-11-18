@@ -144,6 +144,7 @@ def main(args):
             ps.save_json(filename, data, indent=None)
             ps.save_json(translate_dict_filename, translate_dict, indent=None)
         # add content
+        is_add_content = False
         for i, page_url in enumerate(data["list"]):
             item = data["list"][page_url]
             print(f"进入: {i+1}/{count} {page_url}")
@@ -189,22 +190,27 @@ def main(args):
                     data["contents"] = {}
                 data["contents"][page_url] = d
                 ps.save_json(filename, data, indent=None)
+                is_add_content = True
                 print(f"完成: {i+1}/{count} 发现 {len(sentences)} 条肯定句")
             else:
                 print(f"警告: {i+1}/{count} {page_url} 没有点击按钮？仅发现 {len(sentences)} 条肯定句")
-        # embedding
-        with PlaylistEmbedding(
-            quantization="Q8_0",
-            threads=4,
-        ) as analyzer:
-            results = analyzer.analyze_json(
-                data,
-                output_dir=None,
-            )
-        if results:
-            ps.save_json("innertune_list_analysis.json", results["playlist_analysis"], indent=None)
-            ps.save_json("innertune_list_hierarchy.json", results["playlist_hierarchy"], indent=None)
-            ps.save_json("innertune_list_neighbors.json", results["playlist_neighbors"], indent=None)
+        # embedding when is_add_content
+        if is_add_content or True:
+            with PlaylistEmbedding(
+                quantization="Q8_0",
+                threads=4,
+            ) as analyzer:
+                results = analyzer.analyze_json(
+                    data,
+                    output_dir=None,
+                )
+            if results:
+                ps.save_json("innertune_list_analysis.json", results["playlist_analysis"], indent=None)
+                ps.save_json("innertune_list_hierarchy.json", results["playlist_hierarchy"], indent=None)
+                ps.save_json("innertune_list_neighbors.json", results["playlist_neighbors"], indent=None)
+                print("完成向量嵌入、聚类计算。")
+        else:
+            print("没有内容添加，跳过向量嵌入、聚类计算。")
     except:
         error_msg = format_exc()
         print(error_msg)
