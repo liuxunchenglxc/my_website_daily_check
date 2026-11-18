@@ -1009,7 +1009,7 @@ class PlaylistEmbedding:
                 "intro_cn": self.playlist_cores[key]["intro_cn"],
                 "core_sentence_en": self.playlist_cores[key]["core_sentence_en"],
             }
-        playlist_analysis[pa["url"]] = pa
+            playlist_analysis[pa["url"]] = pa
 
         results = {
             "playlist_analysis": playlist_analysis,
@@ -1034,7 +1034,7 @@ class PlaylistEmbedding:
                 "intro_cn": self.playlist_cores[key]["intro_cn"],
                 "core_sentence_en": self.playlist_cores[key]["core_sentence_en"],
             }
-        playlist_analysis[pa["url"]] = pa
+            playlist_analysis[pa["url"]] = pa
 
         self._write_json(
             output_dir / "playlist_analysis.json",
