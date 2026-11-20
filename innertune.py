@@ -9,6 +9,8 @@ import requests
 import io
 from playlist_embedding import PlaylistEmbedding
 import os
+from taxonomy_llm import TaxonomyLLM
+from taxonomy_generator import TaxonomyGenerator
 
 def capture_and_send(page, title, time_wait=1.5):
     time.sleep(time_wait)
@@ -45,7 +47,7 @@ def main(args):
     translator = Translator(quantization="Q4_K_M", threads=4)
     translator.start()
     
-    ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
+    ps: PersonalStore = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
     version = "v2"
     filename = "innertune_list.json"
     translate_dict_filename = "innertune_en_cn.json"
@@ -59,6 +61,17 @@ def main(args):
     else:
         data = {}
         count = 0
+    
+    
+    # Reuse the existing PersonalStore and translation dictionary in main().
+    taxonomy_cache_filename = "innertune_taxonomy_cache.json"
+    taxonomy_output_filename = "innertune_hierarchy_taxonomy.json"
+    taxonomy_cache = ps.try_load_json(taxonomy_cache_filename) or {}
+    
+    def persist_taxonomy_cache(cache):
+        ps.save_json(taxonomy_cache_filename, cache, indent=None)
+        # The generator mutates this same dict with newly translated label strings.
+        ps.save_json(translate_dict_filename, translate_dict, indent=None)
     
     re_translate = False
     translate_dict = ps.try_load_json(translate_dict_filename)
@@ -223,6 +236,29 @@ def main(args):
                 print("完成向量嵌入、聚类计算。")
         else:
             print("没有内容添加，跳过向量嵌入、聚类计算。")
+        # 聚类表生成
+        with TaxonomyLLM(
+            server_path=translator.server_path,
+            threads=4,
+            context=8192,
+        ) as taxonomy_llm:
+            taxonomy_generator = TaxonomyGenerator(
+                llm=taxonomy_llm,
+                translator=translator,
+                cache=taxonomy_cache,
+                translation_cache=translate_dict,
+                on_cache_update=persist_taxonomy_cache,
+                parent_max_size=56,
+                batch_max_size=7,
+                top_category_count=8,
+                naming_batch_size=16,
+            )
+            taxonomy = taxonomy_generator.generate(
+                ps.try_load_json("innertune_list_analysis.json") or {},
+                ps.try_load_json("innertune_list_hierarchy.json") or {},
+            )
+
+        ps.save_json(taxonomy_output_filename, taxonomy, indent=None)
     except:
         error_msg = format_exc()
         print(error_msg)
