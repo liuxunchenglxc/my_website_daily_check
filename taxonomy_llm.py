@@ -383,7 +383,7 @@ class TaxonomyLLM:
             "--cache-type-k", "q8_0",
             "--cache-type-v", "q8_0",
         ]
-        print("Starting Qwen3.5 taxonomy server:", " ".join(command))
+        print("Starting taxonomy server:", " ".join(command))
         self.process = subprocess.Popen(
             command,
             stdout=self.log_file,
@@ -399,13 +399,13 @@ class TaxonomyLLM:
                     f"Check {log_path}."
                 )
             if self._healthy() and self._server_matches_model():
-                print("Qwen3.5 taxonomy server ready.")
+                print("Taxonomy server ready.")
                 return self
             time.sleep(0.5)
 
         self.close()
         raise TimeoutError(
-            f"Qwen3.5 server did not become ready within {self.startup_timeout}s. "
+            f"Server did not become ready within {self.startup_timeout}s. "
             f"Check {log_path}."
         )
 
@@ -420,7 +420,7 @@ class TaxonomyLLM:
         temperature: float | None = None,
     ) -> dict[str, Any]:
         if not self._healthy():
-            raise TaxonomyLLMError("Qwen3.5 server is not running; call start() first.")
+            raise TaxonomyLLMError("Server is not running; call start() first.")
 
         body = {
             # llama-server already serves one loaded model; omit the model name
@@ -480,7 +480,7 @@ class TaxonomyLLM:
                 parsed = json.loads(text)
             except json.JSONDecodeError as exc:
                 raise TaxonomyLLMError(
-                    f"Qwen3.5 returned invalid JSON: {text[:2000]}"
+                    f"Returned invalid JSON: {text[:2000]}"
                 ) from exc
 
         if not isinstance(parsed, dict):

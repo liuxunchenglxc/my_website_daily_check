@@ -236,29 +236,29 @@ def main(args):
                 print("完成向量嵌入、聚类计算。")
         else:
             print("没有内容添加，跳过向量嵌入、聚类计算。")
-        # 聚类表生成
-        with TaxonomyLLM(
-            server_path=translator.server_path,
-            threads=4,
-            context=8192,
-        ) as taxonomy_llm:
-            taxonomy_generator = TaxonomyGenerator(
-                llm=taxonomy_llm,
-                translator=translator,
-                cache=taxonomy_cache,
-                translation_cache=translate_dict,
-                on_cache_update=persist_taxonomy_cache,
-                parent_max_size=56,
-                batch_max_size=7,
-                top_category_count=8,
-                naming_batch_size=16,
-            )
-            taxonomy = taxonomy_generator.generate(
-                ps.try_load_json("innertune_list_analysis.json") or {},
-                ps.try_load_json("innertune_list_hierarchy.json") or {},
-            )
+        # # 聚类表生成
+        # with TaxonomyLLM(
+        #     server_path=translator.server_path,
+        #     threads=4,
+        #     context=8192,
+        # ) as taxonomy_llm:
+        #     taxonomy_generator = TaxonomyGenerator(
+        #         llm=taxonomy_llm,
+        #         translator=translator,
+        #         cache=taxonomy_cache,
+        #         translation_cache=translate_dict,
+        #         on_cache_update=persist_taxonomy_cache,
+        #         parent_max_size=56,
+        #         batch_max_size=7,
+        #         top_category_count=8,
+        #         naming_batch_size=16,
+        #     )
+        #     taxonomy = taxonomy_generator.generate(
+        #         ps.try_load_json("innertune_list_analysis.json") or {},
+        #         ps.try_load_json("innertune_list_hierarchy.json") or {},
+        #     )
 
-        ps.save_json(taxonomy_output_filename, taxonomy, indent=None)
+        # ps.save_json(taxonomy_output_filename, taxonomy, indent=None)
     except:
         error_msg = format_exc()
         print(error_msg)
