@@ -1,0 +1,23 @@
+name: Innertune Translate Improve
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run-task:
+    runs-on: ubuntu-latest
+    
+    container:
+      image: ghcr.io/liuxunchenglxc/my_drissionpage_env:latest
+      options: --ipc=host 
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Innertune翻译优化
+        if: always()
+        run: |
+          python3 -u innertune_translation_optimize.py
+            
