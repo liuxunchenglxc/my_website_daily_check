@@ -26,17 +26,6 @@ def clean(value):
     return re.sub(r"\s+", " ", value).strip() if isinstance(value, str) else ""
 
 
-def is_incoming(url, record):
-    # analysis 文件本身已经包含完整 playlist 信息，不需要再读取 innertune_list.json。
-    if "incoming" in [p.lower() for p in urlparse(url).path.split("/")]:
-        return True
-    for key in ("incoming", "is_incoming", "isComingSoon", "is_coming_soon"):
-        if str(record.get(key, "")).strip().lower() in {"1", "true", "yes", "incoming"}:
-            return True
-    status = clean(record.get("status")).lower().replace("_", " ").replace("-", " ")
-    return status in {"incoming", "coming soon", "upcoming", "not released"}
-
-
 def translate_triplet(translator, source):
     prompt = f"""请将同一个 InnerTune playlist 的三项英文内容翻译成简体中文。
 三项内容属于同一个主题，必须结合全部上下文理解词义，尤其注意标题中的多义词。
@@ -100,8 +89,8 @@ def translate_triplet(translator, source):
     return result
 
 
-def main():
-    token = os.getenv("STORE_TOKEN", "")
+def main(args):
+    token = os.getenv("STORE_TOKEN", args.storetoken)
     if not token:
         raise RuntimeError("请在 GitHub Actions Secrets 中设置 STORE_TOKEN")
 
@@ -114,11 +103,8 @@ def main():
         raise TypeError("analysis 和 translation memory 的顶层结构都必须是 JSON object")
 
     tasks = []
-    include_incoming = os.getenv("INCLUDE_INCOMING", "0") == "1"
     for url, record in analysis.items():
         if not isinstance(url, str) or not isinstance(record, dict):
-            continue
-        if not include_incoming and is_incoming(url, record):
             continue
         source = {
             "title": clean(record.get("title_en")),
@@ -221,4 +207,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="DrissionPage Action")
+    parser.add_argument("--storetoken", required=True, help="Store Token")
+
+    args = parser.parse_args()
+    
+    main(args)

@@ -19,5 +19,5 @@ jobs:
       - name: Innertune翻译优化
         if: always()
         run: |
-          python3 -u innertune_translation_optimize.py
+          python3 -u innertune_translation_optimize.py --storetoken "${{ secrets.STORE_TOKEN }}"
             
