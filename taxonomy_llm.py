@@ -280,194 +280,143 @@ class TaxonomyLLM:
         return [found[i] for i in range(1, expected + 1)]
 
     @staticmethod
-    def _parse_assignments(text: str, expected: int, category_count: int) -> list[int] | None:
-        found: dict[int, int] = {}
-        pattern = re.compile(
-            r"^\s*(\d{1,3})\s*(?:->|=>|[|:：.、])\s*(\d{1,2})\s*$"
-        )
+    def _parse_single_category(text: str, category_count: int) -> int | None:
+        """Parse one category code. The model is asked for A-H, not a mapping."""
+        valid_letters = {
+            chr(ord("A") + index): index + 1
+            for index in range(min(category_count, 26))
+        }
+        valid_numbers = {str(index): index for index in range(1, category_count + 1)}
+
         for raw_line in text.splitlines():
-            line = raw_line.strip().strip("`").lstrip("-*• ").strip()
-            match = pattern.match(line)
-            if not match:
+            line = raw_line.strip().strip("`*_ ")
+            if not line:
                 continue
-            item_index = int(match.group(1))
-            category_index = int(match.group(2))
-            if 1 <= item_index <= expected and 1 <= category_index <= category_count:
-                found[item_index] = category_index
-        if len(found) != expected or any(i not in found for i in range(1, expected + 1)):
-            return None
-        return [found[i] for i in range(1, expected + 1)]
+            line = re.sub(r"^(?:answer|category|类别|答案)\s*[:：-]\s*", "", line, flags=re.I)
+            line = line.lstrip("-*>• ").strip()
 
-    def _name_chunk(self, groups: Sequence[Sequence[str]], level: str) -> list[str]:
-        count = len(groups)
-        blocks = []
-        for index, titles in enumerate(groups, 1):
-            cleaned = [str(title).strip() for title in titles if str(title).strip()]
-            block = "\n".join(f"- {title}" for title in cleaned)
-            blocks.append(f"[{index:03d}]\n{block or '- (empty group)'}")
+            # Preferred protocol: one letter, optionally followed by punctuation
+            # or a short explanation (e.g. "C" or "C - Health & Wellbeing").
+            match = re.match(r"^([A-Z])(?:\b|[).:：|、-])", line.upper())
+            if match and match.group(1) in valid_letters:
+                return valid_letters[match.group(1)]
 
-        if level == "fine":
-            objective = (
-                "Name each small group as a concise English topic label. "
-                "The titles may include books, products, habits, fears, or goals. "
-                "Identify the shared subject, not merely a repeated word. "
-                "Prefer 2-5 words; be specific and avoid vague labels such as General or Other."
-            )
-        else:
-            objective = (
-                "Name each group as a concise, natural English parent-topic label. "
-                "The input entries are already named subtopics. Find their common broader theme. "
-                "Prefer 2-6 words; do not merely concatenate the input labels."
-            )
+            # Be tolerant of a model that returns a numeric code instead.
+            match = re.match(r"^(\d{1,2})(?:\b|[).:：|、-])", line)
+            if match and match.group(1) in valid_numbers:
+                return valid_numbers[match.group(1)]
 
-        system = (
-            "You are an expert taxonomy editor. " + objective + " "
-            "Output only one numbered line per input group, in the original order. "
-            "Use exactly this format: 001 | English topic label. "
-            "Do not output JSON, explanations, preambles, bullets, or extra lines."
-        )
-        user = "Name these groups:\n\n" + "\n\n".join(blocks)
+            # Also accept a short natural-language answer such as "I choose B".
+            # Only inspect this first meaningful line to avoid picking numbers
+            # from quoted category lists or later explanations.
+            letter_hits = re.findall(r"\b([A-Z])\b", line.upper())
+            for letter in letter_hits:
+                if letter in valid_letters:
+                    return valid_letters[letter]
+            number_hits = re.findall(r"\b(\d{1,2})\b", line)
+            for number in number_hits:
+                if number in valid_numbers:
+                    return valid_numbers[number]
+            break
+        return None
 
-        for attempt in range(2):
-            response = self.complete(
-                system,
-                user if attempt == 0 else (
-                    user + "\n\nIMPORTANT: Output exactly " + str(count) +
-                    " lines numbered 001 through " + f"{count:03d}" +
-                    ". Every line must be 'NNN | Title'. No other text."
-                ),
-                temperature=0.1 if attempt else self.temperature,
-                max_tokens=max(160, count * 32),
-            )
-            parsed = self._parse_numbered_lines(response, count)
-            if parsed:
-                return parsed
-            print(f"[Qwen3.5] Invalid {level} naming response; retry {attempt + 1}/2")
-            print(response[:1200])
-
-        if count > 1:
-            midpoint = count // 2
-            return (
-                self._name_chunk(groups[:midpoint], level)
-                + self._name_chunk(groups[midpoint:], level)
-            )
-        raise RuntimeError(
-            f"Qwen could not return one valid {level} label. Response: {response[:2000]}"
-        )
-
-    def name_groups(self, groups: Sequence[Sequence[str]], level: str = "fine") -> list[str]:
-        """Return exactly one English label per input title group, in order."""
-        if not groups:
-            return []
-        return self._name_chunk(groups, level)
-
-    def name_categories(self, topics: Sequence[tuple[str, int]], category_count: int) -> list[str]:
-        """Create a small set of broad category names from (topic, count) pairs."""
-        if not topics:
-            raise ValueError("Cannot create categories from an empty topic list")
-        category_count = min(int(category_count), len(topics))
-        lines = [
-            f"{index:03d} | {title} ({count} items)"
-            for index, (title, count) in enumerate(topics, 1)
-        ]
-        system = (
-            "You are designing the top level of a semantic taxonomy. "
-            f"Group the supplied topics conceptually into exactly {category_count} broad, "
-            "mutually distinguishable categories. The categories should cover the input "
-            "without being overly broad or redundant. Give each category a concise English "
-            "name of 2-5 words. Output only numbered lines using '001 | Category name'. "
-            "Do not output JSON or explanations."
-        )
-        user = "Topics to cover:\n" + "\n".join(lines)
-        response = ""
-        for attempt in range(3):
-            prompt = user
-            if attempt:
-                prompt += (
-                    f"\n\nReturn exactly {category_count} lines numbered "
-                    f"001 through {category_count:03d}, one category per line."
-                )
-            response = self.complete(
-                system, prompt,
-                temperature=0.1 if attempt else self.temperature,
-                max_tokens=max(256, category_count * 40),
-            )
-            parsed = self._parse_numbered_lines(response, category_count)
-            if parsed:
-                return parsed
-            print(f"[Qwen3.5] Invalid top-category response; retry {attempt + 1}/3")
-            print(response[:1600])
-        raise RuntimeError(
-            f"Qwen failed to produce {category_count} top categories: {response[:2000]}"
-        )
-
-    def _assign_chunk(
+    def _assign_one(
         self,
-        topics: Sequence[str],
+        topic: str,
         categories: Sequence[str],
-    ) -> list[int]:
-        lines = [f"C{index:02d} | {name}" for index, name in enumerate(categories, 1)]
-        topic_lines = [f"{index:03d} | {name}" for index, name in enumerate(topics, 1)]
+        position: int,
+        total: int,
+    ) -> int:
+        """Ask the small model to classify exactly one topic per request."""
+        codes = [chr(ord("A") + index) for index in range(len(categories))]
+        category_lines = [
+            f"{code}. {name}"
+            for code, name in zip(codes, categories)
+        ]
+
         system = (
-            "You are assigning topics to an existing taxonomy. "
-            "For each input topic, choose exactly one best-fitting category from the numbered "
-            "category list. Use the category whose meaning best covers the topic. "
-            "Do not create new categories. Output only lines in the form '001 -> 03', "
-            "where the left number is the topic number and the right number is the category "
-            "number. Output one line per topic, with no explanations or JSON."
+            "You are a simple topic classifier. "
+            "Classify the ONE topic into the single best category. "
+            "Return only its category letter, nothing else. "
+            "Do not explain. Do not create categories."
         )
         user = (
-            "Categories:\n" + "\n".join(lines)
-            + "\n\nTopics:\n" + "\n".join(topic_lines)
+            "Choose one category for this topic.\n\n"
+            "Categories:\n"
+            + "\n".join(category_lines)
+            + "\n\nTopic:\n"
+            + str(topic).strip()
+            + "\n\nAnswer with exactly one letter: "
+            + ", ".join(codes)
         )
-        response = ""
-        for attempt in range(2):
-            prompt = user
-            if attempt:
-                prompt += (
-                    f"\n\nThere are exactly {len(topics)} topics. "
-                    "Return every topic number exactly once. Format: 001 -> 03."
-                )
-            response = self.complete(
-                system, prompt,
-                temperature=0.05,
-                max_tokens=max(160, len(topics) * 12),
-            )
-            parsed = self._parse_assignments(
-                response, len(topics), len(categories)
-            )
-            if parsed:
-                return parsed
-            print("[Qwen3.5] Invalid category assignment response; retry")
-            print(response[:1200])
 
-        if len(topics) > 1:
-            midpoint = len(topics) // 2
-            return (
-                self._assign_chunk(topics[:midpoint], categories)
-                + self._assign_chunk(topics[midpoint:], categories)
+        last_response = ""
+        for attempt in range(3):
+            prompt = user
+            if attempt == 1:
+                prompt = (
+                    "One topic only. Pick one category letter. "
+                    "Your entire answer must be a single letter.\n\n"
+                    + user
+                )
+            elif attempt == 2:
+                prompt = (
+                    "This is a single-choice classification.\n"
+                    + "Allowed answers: " + ", ".join(codes) + ".\n"
+                    + "Return exactly one allowed letter.\n\n"
+                    + "Topic: " + str(topic).strip() + "\n\n"
+                    + "Categories:\n" + "\n".join(category_lines)
+                )
+
+            last_response = self.complete(
+                system,
+                prompt,
+                temperature=0.0,
+                max_tokens=8,
             )
+            parsed = self._parse_single_category(
+                last_response, len(categories)
+            )
+            if parsed is not None:
+                return parsed
+
+            print(
+                f"[Qwen3.5] Invalid single-topic assignment "
+                f"({position}/{total}), retry {attempt + 1}/3: "
+                f"{last_response[:180]!r}"
+            )
+
         raise RuntimeError(
-            f"Qwen failed to assign topic '{topics[0]}': {response[:1600]}"
+            f"Qwen failed to classify topic {position}/{total}: "
+            f"{topic!r}; response={last_response[:500]!r}"
         )
 
     def assign_categories(
         self,
         topics: Sequence[str],
         categories: Sequence[str],
-        batch_size: int = 12,
+        batch_size: int = 1,
     ) -> list[int]:
-        """Return 1-based category indices; model sees short plain-text batches."""
+        """Classify topics strictly one at a time; return 1-based category IDs.
+
+        batch_size is retained for backward compatibility and intentionally
+        ignored. A 2B model performs more reliably when each request contains
+        one topic and asks for one short category code.
+        """
         if not categories:
             raise ValueError("Category list is empty")
+        if len(categories) > 26:
+            raise ValueError("Single-letter assignment supports at most 26 categories")
+
         assignments: list[int] = []
-        step = max(1, int(batch_size))
-        for start in range(0, len(topics), step):
-            assignments.extend(
-                self._assign_chunk(topics[start:start + step], categories)
+        total = len(topics)
+        for index, topic in enumerate(topics, 1):
+            assignments.append(
+                self._assign_one(topic, categories, index, total)
             )
-        if len(assignments) != len(topics):
-            raise RuntimeError("Category assignment count mismatch")
+            print(
+                f"[Qwen3.5] Category assignments: {index}/{total}"
+            )
         return assignments
 
     def close(self) -> None:

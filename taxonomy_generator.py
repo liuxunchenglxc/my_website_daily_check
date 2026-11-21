@@ -30,7 +30,7 @@ class TaxonomyGenerator:
         batch_max_size: int = 7,
         top_category_count: int = 8,
         naming_batch_size: int = 16,
-        assignment_batch_size: int = 12,
+        assignment_batch_size: int = 1,
         persist_translation_every: int = 16,
     ):
         self.llm = llm
@@ -46,7 +46,9 @@ class TaxonomyGenerator:
             raise ValueError("batch_max_size must be smaller than parent_max_size")
         self.top_category_count = max(1, int(top_category_count))
         self.naming_batch_size = max(1, int(naming_batch_size))
-        self.assignment_batch_size = max(1, int(assignment_batch_size))
+        # Kept for compatibility with existing innertune.py calls. Category
+        # assignment is now always one topic per model request.
+        self.assignment_batch_size = 1
         self.persist_translation_every = max(1, int(persist_translation_every))
 
         # A previous JSON-output prototype used a different cache schema.
@@ -297,45 +299,116 @@ class TaxonomyGenerator:
         topic_fingerprints = [spec["fingerprint"] for spec in level1_specs]
         topology_fingerprint = self._fingerprint(
             "topology",
-            sorted((spec["fingerprint"], spec["title_en"], spec["count"]) for spec in level1_specs),
+            {
+                "assignment_protocol": "one-topic-one-request-v1",
+                "topics": sorted(
+                    (spec["fingerprint"], spec["title_en"], spec["count"])
+                    for spec in level1_specs
+                ),
+            },
         )
+
         saved = self.cache.get("topology", {})
         if saved.get("fingerprint") == topology_fingerprint:
-            categories = saved.get("categories") or []
+            category_titles = saved.get("categories") or []
             assignments_by_fp = saved.get("assignments") or {}
-            if (
-                categories
-                and 1 <= len(categories) <= min(self.top_category_count, len(level1_specs))
-                and all(fp in assignments_by_fp for fp in topic_fingerprints)
-            ):
-                assignments = [int(assignments_by_fp[fp]) for fp in topic_fingerprints]
-                if all(1 <= value <= len(categories) for value in assignments):
-                    print("[Taxonomy] Reusing cached top-level taxonomy")
-                    return categories, assignments
+            if not isinstance(assignments_by_fp, dict):
+                assignments_by_fp = {}
+            if not category_titles or len(category_titles) > len(level1_specs):
+                category_titles = []
+                assignments_by_fp = {}
+            print(
+                "[Taxonomy] Resuming top-level taxonomy: "
+                f"{len(assignments_by_fp)}/{len(level1_specs)} assignments cached"
+            )
+        else:
+            category_titles = []
+            assignments_by_fp = {}
 
         category_count = min(self.top_category_count, len(level1_specs))
-        category_titles = self.llm.name_categories(topics, category_count)
-        if len(category_titles) != category_count:
-            raise RuntimeError(
-                f"Qwen top-category count mismatch: expected {category_count}, "
-                f"got {len(category_titles)}"
-            )
-        assignments = self.llm.assign_categories(
-            [spec["title_en"] for spec in level1_specs],
-            category_titles,
-            batch_size=self.assignment_batch_size,
-        )
-        if len(assignments) != len(level1_specs):
-            raise RuntimeError("Qwen category assignment count mismatch")
-        if any(not isinstance(value, int) or value < 1 or value > category_count for value in assignments):
-            raise RuntimeError("Qwen returned an invalid category index")
 
-        used = set(assignments)
-        # Remove unused category labels instead of creating empty map regions.
-        if len(used) < category_count:
-            remap = {old: new for new, old in enumerate(sorted(used), 1)}
-            category_titles = [category_titles[old - 1] for old in sorted(used)]
+        # Category-name discovery is a compact global task. The expensive and
+        # failure-prone mapping task below is deliberately one topic per call.
+        if not category_titles:
+            category_titles = self.llm.name_categories(topics, category_count)
+            if len(category_titles) != category_count:
+                raise RuntimeError(
+                    f"Qwen top-category count mismatch: expected {category_count}, "
+                    f"got {len(category_titles)}"
+                )
+            if any(not str(title).strip() for title in category_titles):
+                raise RuntimeError("Qwen returned an empty top-category label")
+            category_titles = [str(title).strip() for title in category_titles]
+            assignments_by_fp = {}
+            self.cache["topology"] = {
+                "fingerprint": topology_fingerprint,
+                "categories": category_titles,
+                "assignments": assignments_by_fp,
+            }
+            self._persist()
+
+        # Map ONE level-1 topic per Qwen request. Persist each answer immediately,
+        # so an interrupted GitHub Actions run resumes without repeating work.
+        assignments = []
+        for index, spec in enumerate(level1_specs, 1):
+            fp = spec["fingerprint"]
+            cached_value = assignments_by_fp.get(fp)
+
+            if (
+                isinstance(cached_value, int)
+                and 1 <= cached_value <= len(category_titles)
+            ):
+                assignment = cached_value
+            else:
+                one_result = self.llm.assign_categories(
+                    [spec["title_en"]],
+                    category_titles,
+                    batch_size=1,
+                )
+                if len(one_result) != 1:
+                    raise RuntimeError(
+                        "Qwen single-topic assignment count mismatch: "
+                        f"expected 1, got {len(one_result)}"
+                    )
+                assignment = one_result[0]
+                if (
+                    not isinstance(assignment, int)
+                    or assignment < 1
+                    or assignment > len(category_titles)
+                ):
+                    raise RuntimeError(
+                        f"Qwen returned invalid category index for {spec['node_id']}: "
+                        f"{assignment!r}"
+                    )
+
+                assignments_by_fp[fp] = assignment
+                self.cache["topology"] = {
+                    "fingerprint": topology_fingerprint,
+                    "categories": category_titles,
+                    "assignments": assignments_by_fp,
+                }
+                self._persist()
+
+            assignments.append(assignment)
+            print(
+                f"[Taxonomy] Top-category assignment: "
+                f"{index}/{len(level1_specs)} ({spec['node_id']})"
+            )
+
+        used = sorted(set(assignments))
+        if not used:
+            raise RuntimeError("Qwen assigned no top-level categories")
+
+        # Remove unused category labels and compact the indices.
+        if len(used) < len(category_titles):
+            remap = {old: new for new, old in enumerate(used, 1)}
+            category_titles = [category_titles[old - 1] for old in used]
             assignments = [remap[value] for value in assignments]
+            assignments_by_fp = {
+                fp: remap[value]
+                for fp, value in assignments_by_fp.items()
+                if value in remap
+            }
 
         self.cache["topology"] = {
             "fingerprint": topology_fingerprint,
