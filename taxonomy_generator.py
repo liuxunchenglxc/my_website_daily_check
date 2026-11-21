@@ -253,43 +253,43 @@ class TaxonomyGenerator:
     # Qwen naming: only titles in, plain text labels out
     # ------------------------------------------------------------------
     def _name_batch_nodes(self, batch_specs: list[dict]) -> None:
+        """Name fine clusters one at a time and persist each result immediately."""
         labels = self.cache["batch_labels"]
         pending = [spec for spec in batch_specs if spec["fingerprint"] not in labels]
-        for chunk in self._chunks(pending, self.naming_batch_size):
-            groups = [spec["titles_en"] for spec in chunk]
-            names = self.llm.name_groups(groups, level="fine")
-            if len(names) != len(chunk):
+        for index, spec in enumerate(pending, 1):
+            name = self.llm.name_group(spec["titles_en"], level="fine")
+            name = str(name).strip()
+            if not name:
                 raise RuntimeError(
-                    f"Qwen fine-label count mismatch: expected {len(chunk)}, got {len(names)}"
+                    f"Qwen returned an empty fine label for {spec['node_id']}"
                 )
-            for spec, name in zip(chunk, names):
-                name = str(name).strip()
-                if not name:
-                    raise RuntimeError(f"Qwen returned an empty label for {spec['node_id']}")
-                labels[spec["fingerprint"]] = {"title_en": name}
+            labels[spec["fingerprint"]] = {"title_en": name}
             self._persist()
-            print(f"[Taxonomy] Fine labels: {len(labels)} cached")
+            print(
+                f"[Taxonomy] Fine labels: {len(labels)} cached "
+                f"(+{index}/{len(pending)} this run)"
+            )
 
     def _name_level1_nodes(self, level1_specs: list[dict]) -> None:
+        """Name each parent cluster separately for the 2B model."""
         labels = self.cache["level1_labels"]
         pending = [
             spec for spec in level1_specs
             if not spec["terminal"] and spec["fingerprint"] not in labels
         ]
-        for chunk in self._chunks(pending, self.naming_batch_size):
-            groups = [spec["child_titles"] for spec in chunk]
-            names = self.llm.name_groups(groups, level="parent")
-            if len(names) != len(chunk):
+        for index, spec in enumerate(pending, 1):
+            name = self.llm.name_group(spec["child_titles"], level="parent")
+            name = str(name).strip()
+            if not name:
                 raise RuntimeError(
-                    f"Qwen parent-label count mismatch: expected {len(chunk)}, got {len(names)}"
+                    f"Qwen returned an empty parent label for {spec['node_id']}"
                 )
-            for spec, name in zip(chunk, names):
-                name = str(name).strip()
-                if not name:
-                    raise RuntimeError(f"Qwen returned an empty parent label for {spec['node_id']}")
-                labels[spec["fingerprint"]] = {"title_en": name}
+            labels[spec["fingerprint"]] = {"title_en": name}
             self._persist()
-            print(f"[Taxonomy] Parent labels: {len(labels)} cached")
+            print(
+                f"[Taxonomy] Parent labels: {len(labels)} cached "
+                f"(+{index}/{len(pending)} this run)"
+            )
 
     def _build_top_categories(self, level1_specs: list[dict]):
         topics = [

@@ -419,6 +419,176 @@ class TaxonomyLLM:
             )
         return assignments
 
+
+    @staticmethod
+    def _clean_label(text: str) -> str:
+        """Extract one concise English label from a plain-text model reply."""
+        text = TaxonomyLLM._clean_response(text)
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if not lines:
+            return ""
+
+        value = lines[0].strip().strip('`*_\"\' ')
+        value = re.sub(
+            r"^(?:category|label|title|name|suggested title)\s*[:：-]\s*",
+            "", value, flags=re.I
+        )
+        value = re.sub(r"^\s*(?:[-*•]|\d+[.)、|:-])\s*", "", value)
+        value = re.sub(r"\s+", " ", value).strip(" .;:—–-\"'*")
+        # Remove common conversational wrappers without damaging the actual label.
+        value = re.sub(
+            r"^(?:the category is|the best label is|a suitable title is)\s+",
+            "", value, flags=re.I
+        )
+        return value.strip()
+
+    def name_group(self, titles: Sequence[str], level: str = "fine") -> str:
+        """Name exactly one cluster from its member English titles.
+
+        One cluster per request. The model returns a single plain-text label;
+        Python handles identity, hierarchy and serialization.
+        """
+        clean_titles = [str(x).strip() for x in titles if str(x).strip()]
+        if not clean_titles:
+            raise ValueError("Cannot name an empty title group")
+
+        level_hint = {
+            "fine": "a specific, narrow topic",
+            "parent": "a broader topic that summarizes several related subtopics",
+        }.get(level, "a concise topic")
+        title_lines = "\n".join(f"- {title}" for title in clean_titles)
+        system = (
+            "You are a concise taxonomy labeler. Read the English titles and name "
+            "their shared topic. Return only one short English category name, "
+            "usually 2 to 6 words. No numbering, no quotation marks, no explanation, "
+            "no JSON, and no Chinese."
+        )
+        user = (
+            f"Name {level_hint} represented by these titles:\n\n"
+            f"{title_lines}\n\n"
+            "Return only the English name on one line."
+        )
+
+        last = ""
+        for attempt in range(3):
+            prompt = user if attempt == 0 else (
+                "Output exactly one concise English topic name on one line. "
+                "Do not explain or enumerate.\n\n" + user
+            )
+            last = self.complete(
+                system, prompt, temperature=0.1 if attempt == 0 else 0.0,
+                max_tokens=48,
+            )
+            label = self._clean_label(last)
+            if label and len(label) <= 90 and not label.endswith((":", ",", ";")):
+                return label
+            print(
+                f"[Qwen3.5] Invalid {level} label, retry "
+                f"{attempt + 1}/3: {last[:160]!r}"
+            )
+
+        raise RuntimeError(
+            f"Qwen failed to name {level} group: {last[:400]!r}"
+        )
+
+    def name_groups(
+        self, groups: Sequence[Sequence[str]], level: str = "fine"
+    ) -> list[str]:
+        """Backward-compatible interface; processes one group per request."""
+        names = []
+        for index, group in enumerate(groups, 1):
+            names.append(self.name_group(group, level=level))
+            print(f"[Qwen3.5] {level} labels: {index}/{len(groups)}")
+        return names
+
+    @staticmethod
+    def _parse_label_lines(text: str, expected: int) -> list[str] | None:
+        numbered = TaxonomyLLM._parse_numbered_lines(text, expected)
+        if numbered is not None:
+            return numbered
+
+        lines = []
+        for raw in text.splitlines():
+            line = raw.strip().strip('`*_\"\' ')
+            if not line:
+                continue
+            line = re.sub(r"^\s*(?:[-*•]|\d+[.)、|:-])\s*", "", line)
+            line = re.sub(
+                r"^(?:category|label|title|name)\s*[:：-]\s*",
+                "", line, flags=re.I
+            )
+            line = re.sub(r"\s+", " ", line).strip(" .;:—–-\"'*")
+            if line:
+                lines.append(line)
+        if len(lines) != expected:
+            return None
+        if len({x.casefold() for x in lines}) != expected:
+            return None
+        return lines
+
+    def name_categories(
+        self, topics: Sequence[tuple[str, int] | str], category_count: int
+    ) -> list[str]:
+        """Create broad top-level category names from a compact topic list.
+
+        This is a naming task, not a multi-topic assignment task. Assignment is
+        done separately by assign_categories(), one topic per request.
+        """
+        if category_count < 1:
+            raise ValueError("category_count must be positive")
+        topic_lines = []
+        for item in topics:
+            if isinstance(item, (tuple, list)) and item:
+                title = str(item[0]).strip()
+                count = item[1] if len(item) > 1 else None
+            else:
+                title, count = str(item).strip(), None
+            if not title:
+                continue
+            suffix = f" ({int(count)} items)" if count is not None else ""
+            topic_lines.append(f"- {title}{suffix}")
+
+        if not topic_lines:
+            raise ValueError("No topics supplied for top-level category naming")
+
+        system = (
+            "You are designing a broad, mutually distinguishable taxonomy. "
+            "Infer high-level domains that collectively cover the supplied topics. "
+            "Return only the requested number of short English category names, "
+            "one per line. Do not assign topics, explain, or output JSON."
+        )
+        user = (
+            f"Create exactly {category_count} broad top-level category names "
+            "that cover this topic list. Prefer clear, recognizable domains; "
+            "avoid redundant or overlapping names.\n\n"
+            + "Topics:\n" + "\n".join(topic_lines)
+            + f"\n\nReturn exactly {category_count} lines, one category name per line."
+        )
+
+        last = ""
+        for attempt in range(3):
+            prompt = user if attempt == 0 else (
+                f"Return exactly {category_count} distinct English category names, "
+                "one per line. No descriptions, no assignments, no JSON.\n\n"
+                + user
+            )
+            last = self.complete(
+                system, prompt, temperature=0.1 if attempt == 0 else 0.0,
+                max_tokens=max(96, category_count * 12),
+            )
+            names = self._parse_label_lines(last, category_count)
+            if names:
+                return names
+            print(
+                f"[Qwen3.5] Invalid top-category names, retry "
+                f"{attempt + 1}/3: {last[:200]!r}"
+            )
+
+        raise RuntimeError(
+            f"Qwen failed to name {category_count} top-level categories: "
+            f"{last[:500]!r}"
+        )
+
     def close(self) -> None:
         if self._owns_server and self.process is not None:
             if self.process.poll() is None:
