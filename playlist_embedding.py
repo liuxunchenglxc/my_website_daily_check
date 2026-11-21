@@ -180,7 +180,7 @@ class PlaylistEmbedding:
 
         # Populated by analyze_playlists(); sentence-level maps are not retained.
         self.playlist_cores: dict[str, dict[str, Any]] = {}
-        self.hierarchy: dict[str, Any] | None = None
+        # self.hierarchy: dict[str, Any] | None = None
         self.neighbors: dict[str, list[dict[str, Any]]] = {}
 
     # ------------------------------------------------------------------
@@ -801,131 +801,131 @@ class PlaylistEmbedding:
             # "representative_core_sentence_en": representative["core_sentence_en"],
         }
 
-    def build_hierarchy(self) -> dict[str, Any]:
-        """Average-linkage hierarchical clustering over playlist core vectors.
+    # def build_hierarchy(self) -> dict[str, Any]:
+    #     """Average-linkage hierarchical clustering over playlist core vectors.
 
-        Each merge node stores complete left/right member snapshots, including
-        each side's playlist names and core sentences. This makes each split
-        independently displayable by the frontend without rebuilding the tree.
-        """
-        records = list(self.playlist_cores.values())
-        count = len(records)
-        leaves: list[dict[str, Any]] = []
-        if count == 0:
-            self.hierarchy = {
-                "method": "average",
-                "metric": "cosine",
-                "leaf_count": 0,
-                "root_node_id": None,
-                "leaves": [],
-                "merges": [],
-            }
-            return self.hierarchy
+    #     Each merge node stores complete left/right member snapshots, including
+    #     each side's playlist names and core sentences. This makes each split
+    #     independently displayable by the frontend without rebuilding the tree.
+    #     """
+    #     records = list(self.playlist_cores.values())
+    #     count = len(records)
+    #     leaves: list[dict[str, Any]] = []
+    #     if count == 0:
+    #         self.hierarchy = {
+    #             "method": "average",
+    #             "metric": "cosine",
+    #             "leaf_count": 0,
+    #             "root_node_id": None,
+    #             "leaves": [],
+    #             "merges": [],
+    #         }
+    #         return self.hierarchy
 
-        for index, record in enumerate(records):
-            leaf_id = f"playlist-{index:05d}"
-            leaves.append(
-                {
-                    "node_id": leaf_id,
-                    "type": "playlist",
-                    "playlist_id": record["playlist_id"],
-                    # "title_en": record["title_en"],
-                    # "title_cn": record["title_cn"],
-                    # "intro_en": record["intro_en"],
-                    # "intro_cn": record["intro_cn"],
-                    # "core_sentence_en": record["core_sentence_en"],
-                }
-            )
+    #     for index, record in enumerate(records):
+    #         leaf_id = f"playlist-{index:05d}"
+    #         leaves.append(
+    #             {
+    #                 "node_id": leaf_id,
+    #                 "type": "playlist",
+    #                 "playlist_id": record["playlist_id"],
+    #                 # "title_en": record["title_en"],
+    #                 # "title_cn": record["title_cn"],
+    #                 # "intro_en": record["intro_en"],
+    #                 # "intro_cn": record["intro_cn"],
+    #                 # "core_sentence_en": record["core_sentence_en"],
+    #             }
+    #         )
 
-        if count == 1:
-            self.hierarchy = {
-                "method": "average",
-                "metric": "cosine",
-                "leaf_count": 1,
-                "root_node_id": leaves[0]["node_id"],
-                "leaves": leaves,
-                "merges": [],
-            }
-            return self.hierarchy
+    #     if count == 1:
+    #         self.hierarchy = {
+    #             "method": "average",
+    #             "metric": "cosine",
+    #             "leaf_count": 1,
+    #             "root_node_id": leaves[0]["node_id"],
+    #             "leaves": leaves,
+    #             "merges": [],
+    #         }
+    #         return self.hierarchy
 
-        try:
-            from scipy.cluster.hierarchy import linkage
-            from scipy.spatial.distance import pdist
-        except ImportError as exc:
-            raise RuntimeError(
-                "Hierarchical clustering requires SciPy. Install it with: pip install scipy"
-            ) from exc
+    #     try:
+    #         from scipy.cluster.hierarchy import linkage
+    #         from scipy.spatial.distance import pdist
+    #     except ImportError as exc:
+    #         raise RuntimeError(
+    #             "Hierarchical clustering requires SciPy. Install it with: pip install scipy"
+    #         ) from exc
 
-        matrix = np.asarray(
-            [record["core_sentence_vector"] for record in records], dtype=np.float32
-        )
-        norms = np.linalg.norm(matrix, axis=1, keepdims=True)
-        matrix = matrix / np.maximum(norms, 1e-12)
-        condensed_distances = pdist(matrix, metric="cosine")
-        condensed_distances = np.nan_to_num(
-            condensed_distances, nan=1.0, posinf=2.0, neginf=0.0
-        )
-        linkage_matrix = linkage(condensed_distances, method="average")
+    #     matrix = np.asarray(
+    #         [record["core_sentence_vector"] for record in records], dtype=np.float32
+    #     )
+    #     norms = np.linalg.norm(matrix, axis=1, keepdims=True)
+    #     matrix = matrix / np.maximum(norms, 1e-12)
+    #     condensed_distances = pdist(matrix, metric="cosine")
+    #     condensed_distances = np.nan_to_num(
+    #         condensed_distances, nan=1.0, posinf=2.0, neginf=0.0
+    #     )
+    #     linkage_matrix = linkage(condensed_distances, method="average")
 
-        # A group stores ordered playlist records and the id of the tree node.
-        groups: dict[int, dict[str, Any]] = {}
-        for index, record in enumerate(records):
-            groups[index] = {
-                "node_id": leaves[index]["node_id"],
-                "members": [record],
-            }
+    #     # A group stores ordered playlist records and the id of the tree node.
+    #     groups: dict[int, dict[str, Any]] = {}
+    #     for index, record in enumerate(records):
+    #         groups[index] = {
+    #             "node_id": leaves[index]["node_id"],
+    #             "members": [record],
+    #         }
 
-        merges: list[dict[str, Any]] = []
-        for merge_index, row in enumerate(linkage_matrix):
-            left_index = int(row[0])
-            right_index = int(row[1])
-            distance = float(np.clip(row[2], 0.0, 2.0))
-            node_number = count + merge_index
-            node_id = f"cluster-{merge_index:05d}"
+    #     merges: list[dict[str, Any]] = []
+    #     for merge_index, row in enumerate(linkage_matrix):
+    #         left_index = int(row[0])
+    #         right_index = int(row[1])
+    #         distance = float(np.clip(row[2], 0.0, 2.0))
+    #         node_number = count + merge_index
+    #         node_id = f"cluster-{merge_index:05d}"
 
-            left_group = groups[left_index]
-            right_group = groups[right_index]
-            left_members = left_group["members"]
-            right_members = right_group["members"]
-            merged_members = left_members + right_members
+    #         left_group = groups[left_index]
+    #         right_group = groups[right_index]
+    #         left_members = left_group["members"]
+    #         right_members = right_group["members"]
+    #         merged_members = left_members + right_members
 
-            left_snapshot = self._group_snapshot(
-                left_group["node_id"], left_members, matrix
-            )
-            right_snapshot = self._group_snapshot(
-                right_group["node_id"], right_members, matrix
-            )
-            merged_snapshot = self._group_snapshot(
-                node_id, merged_members, matrix
-            )
+    #         left_snapshot = self._group_snapshot(
+    #             left_group["node_id"], left_members, matrix
+    #         )
+    #         right_snapshot = self._group_snapshot(
+    #             right_group["node_id"], right_members, matrix
+    #         )
+    #         merged_snapshot = self._group_snapshot(
+    #             node_id, merged_members, matrix
+    #         )
 
-            merges.append(
-                {
-                    "node_id": node_id,
-                    "type": "cluster",
-                    "merge_order": merge_index + 1,
-                    "distance": distance,
-                    "similarity": float(np.clip(1.0 - distance, -1.0, 1.0)),
-                    "left": left_snapshot,
-                    "right": right_snapshot,
-                    "merged": merged_snapshot,
-                }
-            )
-            groups[node_number] = {
-                "node_id": node_id,
-                "members": merged_members,
-            }
+    #         merges.append(
+    #             {
+    #                 "node_id": node_id,
+    #                 "type": "cluster",
+    #                 "merge_order": merge_index + 1,
+    #                 "distance": distance,
+    #                 "similarity": float(np.clip(1.0 - distance, -1.0, 1.0)),
+    #                 "left": left_snapshot,
+    #                 "right": right_snapshot,
+    #                 "merged": merged_snapshot,
+    #             }
+    #         )
+    #         groups[node_number] = {
+    #             "node_id": node_id,
+    #             "members": merged_members,
+    #         }
 
-        root_node_id = merges[-1]["node_id"]
-        self.hierarchy = {
-            "method": "average",
-            "metric": "cosine",
-            "leaf_count": count,
-            "root_node_id": root_node_id,
-            "leaves": leaves,
-            "merges": merges,
-        }
-        return self.hierarchy
+    #     root_node_id = merges[-1]["node_id"]
+    #     self.hierarchy = {
+    #         "method": "average",
+    #         "metric": "cosine",
+    #         "leaf_count": count,
+    #         "root_node_id": root_node_id,
+    #         "leaves": leaves,
+    #         "merges": merges,
+    #     }
+    #     return self.hierarchy
 
     def build_playlist_neighbors(self, top_k: int = 10) -> dict[str, list[dict[str, Any]]]:
         """Return each playlist's nearest other playlists using core vectors."""
@@ -998,7 +998,7 @@ class PlaylistEmbedding:
             batch_size=batch_size,
             show_progress=True,
         )
-        hierarchy = self.build_hierarchy()
+        # hierarchy = self.build_hierarchy()
         neighbors = self.build_playlist_neighbors(top_k=top_k)
         
         playlist_analysis = {}
@@ -1015,7 +1015,7 @@ class PlaylistEmbedding:
 
         results = {
             "playlist_analysis": playlist_analysis,
-            "playlist_hierarchy": hierarchy,
+            # "playlist_hierarchy": hierarchy,
             "playlist_neighbors": neighbors,
         }
         if output_dir is not None:
@@ -1042,9 +1042,9 @@ class PlaylistEmbedding:
             output_dir / "playlist_analysis.json",
             playlist_analysis,
         )
-        if self.hierarchy is None:
-            self.build_hierarchy()
-        self._write_json(output_dir / "playlist_hierarchy.json", self.hierarchy)
+        # if self.hierarchy is None:
+        #     self.build_hierarchy()
+        # self._write_json(output_dir / "playlist_hierarchy.json", self.hierarchy)
         self._write_json(output_dir / "playlist_neighbors.json", self.neighbors)
 
         manifest = {
