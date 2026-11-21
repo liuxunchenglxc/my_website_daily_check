@@ -8,9 +8,6 @@ from translator import Translator
 import requests
 import io
 from playlist_embedding import PlaylistEmbedding
-import os
-from taxonomy_llm import TaxonomyLLM
-from taxonomy_generator import TaxonomyGenerator
 
 def capture_and_send(page, title, time_wait=1.5):
     time.sleep(time_wait)
@@ -62,24 +59,14 @@ def main(args):
         data = {}
         count = 0
     
-    
-    # Reuse the existing PersonalStore and translation dictionary in main().
-    taxonomy_cache_filename = "innertune_taxonomy_cache.json"
-    taxonomy_output_filename = "innertune_hierarchy_taxonomy.json"
-    taxonomy_cache = ps.try_load_json(taxonomy_cache_filename) or {}
-    
-    def persist_taxonomy_cache(cache):
-        ps.save_json(taxonomy_cache_filename, cache, indent=None)
-        # The generator mutates this same dict with newly translated label strings.
-        ps.save_json(translate_dict_filename, translate_dict, indent=None)
-    
     re_translate = False
-    translate_dict = ps.try_load_json(translate_dict_filename)
-    if not translate_dict:
-        translate_dict = {}
+    translate_dict = ps.try_load_json(translate_dict_filename) or {}
     if re_translate:
         translate_dict = {}
         is_find_meta = True
+    
+    cls_dict_filename = "innertune_cls.json"
+    cls_dict = ps.try_load_json(cls_dict_filename) or {}
     
     co = ChromiumOptions()
     co.set_argument('--no-sandbox')
@@ -95,8 +82,16 @@ def main(args):
     tab.get(url)
     time.sleep(5)
     
-    # print("点击接收Cookies")
-    # ac.move_to((432, 136), duration=0.5).move_to((1428, 988), duration=0.5).click()
+    def try_trans(en):
+        if en:
+            if (en not in translate_dict):
+                cn = translator.translate(en)
+                translate_dict[en] = cn
+            else:
+                cn = translate_dict[en]
+        else:
+            cn = ""
+        return cn
     
     try:
         if is_find_meta:
@@ -164,11 +159,11 @@ def main(args):
             if item["is_coming_soon"]:
                 print(f"跳过: {i+1}/{count} Coming Soon")
                 continue
-            # 跳过已完成
-            if "contents" in data:
-                if page_url in data["contents"]:
-                    print(f"跳过: {i+1}/{count} 已完成")
-                    continue
+            # # 跳过已完成
+            # if "contents" in data:
+            #     if page_url in data["contents"]:
+            #         print(f"跳过: {i+1}/{count} 已完成")
+            #         continue
                 
             tab.get(page_url)
             time.sleep(5)
@@ -192,12 +187,27 @@ def main(args):
                 t = s.text
                 if t:
                     sentences.append(t)
+            classes = tab.ele("css:section > div.max-w-4xl > div.flex > div.flex-1 > p.text-primary").text.split(" • ")
+            p_cls = classes[0].strip()
+            s_cls = classes[1].strip()
+            p_cls_cn = try_trans(p_cls)
+            s_cls_cn = try_trans(s_cls)
             if len(sentences) > 8:
                 d = {
                     "url": page_url,
                     "sentences": sentences,
                     "time": time.time(),
+                    "main_class_en": p_cls,
+                    "sub_class_en": s_cls,
+                    "main_class_cn": p_cls_cn,
+                    "sub_class_cn": s_cls_cn,
                 }
+                if p_cls not in cls_dict:
+                    cls_dict[p_cls] = {}
+                if s_cls not in cls_dict[p_cls]:
+                    cls_dict[p_cls][s_cls] = []
+                cls_dict[p_cls][s_cls].append(page_url)
+                ps.save_json(cls_dict_filename, cls_dict, indent=None)
                 if "contents" not in data:
                     data["contents"] = {}
                 data["contents"][page_url] = d
@@ -231,7 +241,6 @@ def main(args):
                     print(f"已翻译核心句: {i+1}/{len(results["playlist_analysis"])}")
                 ps.save_json(translate_dict_filename, translate_dict, indent=None)
                 ps.save_json("innertune_list_analysis.json", results["playlist_analysis"], indent=None)
-                # ps.save_json("innertune_list_hierarchy.json", results["playlist_hierarchy"], indent=None)
                 ps.save_json("innertune_list_neighbors.json", results["playlist_neighbors"], indent=None)
                 print("完成向量嵌入、聚类计算。")
         else:
