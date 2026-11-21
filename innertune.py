@@ -159,11 +159,11 @@ def main(args):
             if item["is_coming_soon"]:
                 print(f"跳过: {i+1}/{count} Coming Soon")
                 continue
-            # # 跳过已完成
-            # if "contents" in data:
-            #     if page_url in data["contents"]:
-            #         print(f"跳过: {i+1}/{count} 已完成")
-            #         continue
+            # 跳过已完成
+            if "contents" in data:
+                if page_url in data["contents"]:
+                    print(f"跳过: {i+1}/{count} 已完成")
+                    continue
                 
             tab.get(page_url)
             time.sleep(5)
