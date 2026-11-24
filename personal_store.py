@@ -16,7 +16,7 @@ class PersonalStore:
 
     def __init__(
         self,
-        base_url: str = "https://hc.lxc.nya.je:24687/",
+        base_url: str = "https://bh.lxc.nya.je:25570/",
         token: str = "",
         timeout: float = 30.0,
     ):

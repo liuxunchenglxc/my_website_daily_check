@@ -52,7 +52,7 @@ def main(args):
     data = ps.try_load_json(filename)
     if data:
         if data["version"] == version:
-            if time.time() - float(data["time"]) < 7 * 24 * 3600:
+            if time.time() - float(data["time"]) < 12 * 3600:
                 is_find_meta = False
                 count = len(data["list"])
     else:
