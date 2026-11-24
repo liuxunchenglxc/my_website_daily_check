@@ -187,12 +187,12 @@ def main(args):
         sub_2.click(by_js=True, timeout=1.5)
         sub_url = pyperclip.paste()
         
-        ps = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
+        ps = PersonalStore("https://bh.lxc.nya.je:25570/", args.storetoken)
         req = requests.get(sub_url, headers={"User-Agent": "clash-verge/1.6.6"})
         try:
             req.raise_for_status()
             ps.save("fny.yaml", req.text)
-            capture_and_send(tab, f"飞鸟云订阅地址：https://hc.lxc.nya.je:24687/store/fny.yaml?token={args.storetoken}", time_wait=1.5)
+            capture_and_send(tab, f"飞鸟云订阅地址：https://bh.lxc.nya.je:25570/store/fny.yaml?token={args.storetoken}", time_wait=1.5)
         except:
             capture_and_send(tab, f"飞鸟云订阅地址：{sub_url}", time_wait=1.5)
             send_resend_email(sub_url, status=True)
