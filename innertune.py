@@ -44,7 +44,7 @@ def main(args):
     translator = Translator(quantization="Q4_K_M", threads=4)
     translator.start()
     
-    ps: PersonalStore = PersonalStore("https://hc.lxc.nya.je:24687/", args.storetoken)
+    ps: PersonalStore = PersonalStore("https://bh.lxc.nya.je:25570/", args.storetoken)
     version = "v2"
     filename = "innertune_list.json"
     translate_dict_filename = "innertune_en_cn.json"

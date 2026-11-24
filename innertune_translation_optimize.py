@@ -19,7 +19,7 @@ ANALYSIS_FILE = "innertune_list_analysis.json"
 MEMORY_FILE = "innertune_en_cn.json"
 MODEL_REPO = "tencent/Hy-MT2-7B-GGUF"
 MODEL_FILE = "Hy-MT2-7B-Q4_K_M.gguf"
-STORE_BASE_URL = os.getenv("STORE_BASE_URL", "https://hc.lxc.nya.je:24687/")
+STORE_BASE_URL = os.getenv("STORE_BASE_URL", "https://bh.lxc.nya.je:25570/")
 
 
 def clean(value):
